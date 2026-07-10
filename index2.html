@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Subway Backrooms - Endless Platforms</title>
+    <style>
+        html, body { width:100%; height:100%; margin:0; padding:0; overflow:hidden; background:#000; touch-action:none; user-select:none; -webkit-user-select:none; font-family:'Courier New', Courier, monospace; }
+        canvas { display:block; width:100%!important; height:100%!important; position:absolute; top:0; left:0; z-index:1; filter: sepia(0.1) contrast(1.25) saturate(1.1); }
+        
+        #vhs-overlay { position:absolute; top:0; left:0; width:100%; height:100%; background:radial-gradient(circle, rgba(0,0,0,0) 40%, rgba(0,0,0,0.85) 100%); pointer-events:none; z-index:2; box-shadow: inset 0 0 50px rgba(0,0,0,0.8); }
+        #glitch-overlay { position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0); opacity:0; pointer-events:none; z-index:3; transition:background-color .2s, opacity .2s; }
+        
+        .scanlines { position:absolute; top:0; left:0; width:100%; height:100%; background:linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.25) 50%), linear-gradient(90deg, rgba(255,0,0,0.06), rgba(0,255,0,0.02), rgba(0,0,255,0.06)); background-size:100% 4px, 3px 100%; pointer-events:none; z-index:4; }
+        .vhs-noise { position:absolute; top:0; left:0; width:100%; height:100%; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E"); pointer-events:none; z-index:4; opacity:0.12; animation:staticAnim 0.08s steps(2) infinite; }
+        
+        @keyframes staticAnim { 0%, 100% { opacity:0.08; transform:translate(0,0); } 50% { opacity:0.14; transform:translate(-1px, 1px); } }
+
+        #crosshair { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:4px; height:4px; background:rgba(255,255,255,.5); border-radius:50%; pointer-events:none; z-index:5; display:none; }
+        
+        #cctv-ui { position:absolute; top:30px; left:30px; color:#ff2222; font-weight:bold; font-size:18px; z-index:210; letter-spacing:2px; pointer-events:none; display:none; text-shadow:0 0 8px rgba(255,34,34,0.7); }
+        .blink-rec { color: #ff2222; animation: blink 1s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        #quest-ui { position:absolute; top:70px; left:30px; color:#a2ffd1; font-weight:bold; font-size:14px; z-index:210; letter-spacing:1px; pointer-events:none; display:none; text-shadow:0 1px 4px rgba(0,0,0,1); }
+        #interact-prompt { position:absolute; top:55%; left:50%; transform:translate(-50%,-50%); color:#fff; background:rgba(0,0,0,.85); border:1px solid #71d1b9; padding:10px 20px; font-weight:bold; font-size:14px; z-index:100; display:none; pointer-events:none; text-align:center; }
+        
+        #top-controls { position:absolute; top:20px; right:20px; z-index:220; display:none; gap: 10px; }
+        .btn { background:rgba(10,10,10,0.8); color:#b1c4c1; border:1px solid #364744; padding:8px 16px; cursor:pointer; font-weight:bold; font-size:12px; transition:all .2s; }
+        .btn:hover { background:rgba(30,30,30,0.9); color:#fff; border-color:#83d2c8; }
+        
+        #mobile-controls-right { position:absolute; bottom:30px; right:30px; display:none; flex-direction:column; gap:15px; z-index:220; }
+        .circle-btn { width:60px; height:60px; background:rgba(20,20,20,.8); border:2px solid #3e5451; border-radius:50%; color:#cfe8e4; font-size:22px; display:flex; justify-content:center; align-items:center; cursor:pointer; touch-action:none; }
+        .circle-btn.active { background:#71d1bd; color:#111; border-color:#fff; }
+        #btn-mobile-interact { background:#9fffe3!important; color:#111!important; border-color:#fff!important; display:none; font-size:26px; animation:pulse 1s infinite; z-index:230; }
+        @keyframes pulse{ 0%{transform:scale(1);} 50%{transform:scale(1.1);} 100%{transform:scale(1);} }
+        
+        #stamina-container { position:absolute; bottom:30px; left:50%; transform:translateX(-50%); width:250px; background:rgba(0,0,0,.6); border:1px solid #364746; padding:3px; z-index:10; display:none; }
+        .stamina-bg { height:6px; background:rgba(0,0,0,0.8); }
+        #stamina-bar { width:100%; height:100%; background:#71d1bd; transition:width 0.1s linear; }
+        
+        #heartbeat-ui { position:absolute; bottom:50px; left:50%; transform:translateX(-50%) scale(0); font-size:50px; color:#cc1818; text-shadow:0 0 25px rgba(204,24,24,.9); pointer-events:none; z-index:15; transition:transform .1s ease-out; }
+        #game-toast { position:absolute; top:15%; left:50%; transform:translate(-50%,-50%); color:#fff; font-weight:bold; font-size:16px; z-index:300; display:none; pointer-events:none; text-align:center; text-shadow: 0 2px 4px #000; letter-spacing:1px; background:rgba(0,0,0,0.8); padding: 10px 20px; border:1px solid #555; }
+        
+        #joystick-zone { position:absolute; bottom:35px; left:35px; width:120px; height:120px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.2); border-radius:50%; z-index:10; touch-action:none; display:none; }
+        #joystick-stick { position:absolute; top:35px; left:35px; width:50px; height:50px; background:rgba(255,255,255,.4); border-radius:50%; }
+
+        /* 수정됨: 초기 상태를 display:none으로 변경하여 메인 화면을 건너뜀 */
+        #start-screen { position:absolute; top:0; left:0; width:100%; height:100%; z-index:200; display:none; flex-direction:column; justify-content:center; align-items:center; text-align: center; color:#fff; background: radial-gradient(circle, rgba(15,22,20,0.85) 0%, rgba(3,5,5,0.98) 100%); pointer-events:auto; }
+
+        .rec-indicator { font-size: 16px; font-weight: 900; color: #ff3c3c; letter-spacing: 4px; margin-bottom: 30px; text-shadow: 0 0 8px rgba(255, 60, 60, 0.6); }
+        .red-dot { width: 12px; height: 12px; background-color: #ff3c3c; border-radius: 50%; display: inline-block; margin-right: 8px; animation: blink 1s steps(2) infinite; }
+
+        .glitch { position: relative; font-family: 'Courier New', Courier, monospace; font-weight: 900; text-transform: uppercase; color: #b1c9c4; margin: 0; line-height: 1.1; text-shadow: 2px 2px 0px #3a798b, 4px 4px 0px #274b5c, 6px 6px 0px #142a31, 8px 8px 15px rgba(0,0,0,1); animation: master-jitter 3s infinite; }
+        .glitch-title { font-size: 65px; letter-spacing: 8px; }
+        .glitch-sub { font-size: 22px; letter-spacing: 10px; margin-bottom: 20px; color: #76959b; text-shadow: 2px 2px 0px #213c4d, 4px 4px 10px #000; }
+        
+        .glitch::before, .glitch::after { content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: transparent; z-index: -1; }
+        .glitch::before { left: 3px; text-shadow: -2px 0 #192f3a, 0 0 5px rgba(0,0,0,0.8); clip: rect(24px, 9999px, 90px, 0); animation: glitch-anim-1 2s infinite linear alternate-reverse; }
+        .glitch::after { left: -3px; text-shadow: -2px 0 #3a688b, 2px 2px 5px rgba(0,0,0,0.9); clip: rect(85px, 9999px, 140px, 0); animation: glitch-anim-2 3s infinite linear alternate-reverse; }
+
+        @keyframes master-jitter { 0%, 90% { transform: translate(0,0); } 92% { transform: translate(-2px, 1px) skew(1deg); } 94% { transform: translate(2px, -2px) skew(-1deg); } 96% { transform: translate(-1px, 2px); } 98% { transform: translate(1px, -1px); } 100% { transform: translate(0,0); } }
+        @keyframes glitch-anim-1 { 0% { clip: rect(10px, 9999px, 30px, 0); } 20% { clip: rect(60px, 9999px, 90px, 0); } 40% { clip: rect(20px, 9999px, 40px, 0); } 60% { clip: rect(80px, 9999px, 100px, 0); } 80% { clip: rect(5px, 9999px, 15px, 0); } 100% { clip: rect(40px, 9999px, 70px, 0); } }
+        @keyframes glitch-anim-2 { 0% { clip: rect(80px, 9999px, 100px, 0); } 20% { clip: rect(10px, 9999px, 40px, 0); } 40% { clip: rect(50px, 9999px, 70px, 0); } 60% { clip: rect(20px, 9999px, 50px, 0); } 80% { clip: rect(90px, 9999px, 120px, 0); } 100% { clip: rect(30px, 9999px, 60px, 0); } }
+
+        .badge-obunga { background: rgba(12, 18, 20, 0.9); border: 1px solid #274b5c; color: #83d2c8; border-radius: 2px; padding: 8px 20px; font-size: 13px; font-weight: bold; letter-spacing: 3px; margin: 30px 0 30px; text-transform: uppercase; box-shadow: 0 4px 10px rgba(0,0,0,0.8); }
+        
+        .main-btn-group { display: flex; flex-direction: column; gap: 20px; align-items: center; margin-top: 20px; }
+
+        .play-btn { padding: 20px 60px; font-size: 28px; font-weight: 900; letter-spacing: 10px; color: #000; background: #83d2ca; border: 3px solid #fff; border-radius: 5px; cursor: pointer; font-family: inherit; box-shadow: 0 0 30px rgba(131, 210, 200, 0.6); text-shadow: 1px 1px 0px #fff; transition: all 0.2s ease; animation: pulse-play 2s infinite; }
+        .play-btn:hover { background: #fff; box-shadow: 0 0 50px rgba(255, 255, 255, 0.8); transform: scale(1.05); }
+        @keyframes pulse-play { 0% {box-shadow: 0 0 20px rgba(131,210,195,0.4);} 50% {box-shadow: 0 0 40px rgba(131,210,195,0.8);} 100% {box-shadow: 0 0 20px rgba(131,210,195,0.4);} }
+
+        .system-btn { padding: 10px 30px; font-size: 14px; font-weight: 900; letter-spacing: 5px; color: #83cbd2; background: transparent; border: 1px solid #83cbd2; border-radius: 3px; cursor: pointer; font-family: inherit; transition: all 0.2s ease; }
+        .system-btn:hover { background: rgba(131, 210, 207, 0.2); border-color:#fff; color:#fff; }
+
+        #settings-modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 250; display: none; justify-content: center; align-items: center; }
+        .settings-box { background: rgba(10, 14, 15, 0.95); border: 2px solid #3a798b; box-shadow: 0 0 30px rgba(58, 119, 139, 0.3), inset 0 0 15px rgba(0,0,0,1); padding: 40px; width: 340px; text-align: center; display: flex; flex-direction: column; gap: 30px; animation: box-pop 0.2s ease-out; }
+        @keyframes box-pop { from { transform: scale(0.9); opacity:0; } to { transform: scale(1); opacity:1; } }
+
+        .settings-header { color: #83cbd2; font-size: 22px; font-weight: 900; letter-spacing: 3px; margin: 0; text-shadow: 2px 2px 4px #000; }
+        
+        .setting-section { display: flex; flex-direction: column; gap: 10px; text-align: left; }
+        .setting-label { font-weight: bold; font-size: 13px; color: #83cbd2; text-shadow: 1px 1px 2px #000; letter-spacing: 1px; margin-bottom: 5px;}
+        
+        .platform-toggles { display: flex; gap: 10px; }
+        .toggle-btn { flex: 1; padding: 12px; font-size: 14px; font-weight: bold; letter-spacing: 2px; cursor: pointer; border-radius: 3px; font-family: inherit; transition: 0.2s; background: #14212a; color: #3a758b; border: 1px solid #213c4d; }
+        .toggle-btn.active { background: #53a3b1; color: #111; border-color: #fff; box-shadow: 0 0 10px rgba(131, 210, 203, 0.5); }
+
+        .slider-group { display: flex; flex-direction: column; gap: 20px; text-align: left; }
+        .menu-setting-row { display: flex; flex-direction: column; gap: 8px; font-weight: bold; font-size: 13px; color: #83cbd2; text-shadow: 1px 1px 2px #000; letter-spacing: 1px; }
+        .menu-setting-row input[type=range] { width: 100%; cursor: pointer; accent-color: #83cbd2; background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px; outline: none; -webkit-appearance: none; }
+        .menu-setting-row input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #83cbd2; border: 2px solid #111; }
+
+        .close-btn { background: transparent; color: #aaa; border: 1px solid #555; padding: 12px; font-size: 14px; font-weight: bold; letter-spacing: 2px; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+        .close-btn:hover { background: #333; color: #fff; border-color: #fff; }
+
+        #gameover-screen, #pause-screen, #clear-screen { position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(5,5,5,.9); z-index:150; display:none; flex-direction:column; justify-content:center; align-items:center; backdrop-filter: blur(5px); }
+        .screen-title { font-size:40px; margin-bottom:10px; letter-spacing:5px; font-weight:900; text-align: center; }
+        .go-btn { background:transparent; color:#fff; border:2px solid #fff; padding:15px 30px; font-size:16px; font-weight:bold; cursor:pointer; letter-spacing:2px; transition:all 0.2s; font-family:'Courier New', Courier, monospace; margin: 10px; }
+        .go-btn:hover { background:#fff; color:#000; }
+
+        #admin-panel { display:none; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(15,5,5,0.95); border:2px solid #f33; padding:30px; z-index:9999; flex-direction:column; align-items:center; box-shadow:0 0 40px rgba(255,0,0,0.6); }
+        #admin-panel h3 { color:#f55; margin:0 0 20px 0; letter-spacing:3px; }
+        #admin-pw { background:#000; color:#fff; border:1px solid #f55; padding:15px; margin-bottom:20px; width:220px; text-align:center; font-size:18px; outline:none; font-family:monospace; }
+        #admin-panel .btn-cancel { background:#222; color:#aaa; border:1px solid #555; padding:12px; cursor:pointer; font-family:monospace; width:100%; transition:all 0.2s; font-weight: bold; }
+        #admin-panel .btn-cancel:hover { background:#444; color:#fff; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+<div id="vhs-overlay"></div>
+<div class="scanlines"></div>
+<div class="vhs-noise"></div>
+<div id="glitch-overlay"></div>
+<div id="crosshair"></div>
+
+<div id="cctv-ui">
+    <span class="blink-rec">REC</span> <span id="cctv-time" style="color: #ff2222; text-shadow:0 0 8px rgba(255,34,34,0.7);">00:00</span>
+</div>
+<div id="quest-ui"></div>
+<div id="interact-prompt"></div>
+<div id="game-toast"></div>
+<div id="heartbeat-ui">♡</div>
+
+<div id="start-screen">
+    <div class="rec-indicator"><span class="red-dot"></span> REC – METRO CAM 04</div>
+    <div class="glitch glitch-sub" data-text="INFINITE SUBWAY STATION">INFINITE SUBWAY STATION</div>
+    <h1 class="glitch glitch-title" data-text="SUBWAY ROOMS">SUBWAY ROOMS</h1>
+    <div class="badge-obunga">No Escape, Only Transfers</div>
+    <div class="main-btn-group">
+        <button class="play-btn glitch" data-text="PLAY" onclick="launchGame()">PLAY</button>
+        <button class="system-btn" onclick="openSettingsModal()">SYSTEM SETTINGS</button>
+    </div>
+</div>
+
+<div id="settings-modal">
+    <div class="settings-box">
+        <h2 class="settings-header glitch" data-text="SETTINGS">SETTINGS</h2>
+        <div class="setting-section">
+            <div class="setting-label">DEVICE TYPE (기기 선택)</div>
+            <div class="platform-toggles">
+                <button id="set-plat-pc" class="toggle-btn" onclick="updatePlatformUI('pc')">PC</button>
+                <button id="set-plat-mo" class="toggle-btn" onclick="updatePlatformUI('mobile')">MOBILE</button>
+            </div>
+        </div>
+        <div class="slider-group">
+            <div class="menu-setting-row">
+                <span>SENSITIVITY (감도)</span>
+                <input type="range" min="0.1" max="3.0" step="0.1" value="1.0" oninput="sensitivity=parseFloat(this.value)">
+            </div>
+            <div class="menu-setting-row">
+                <span>BGM VOLUME (브금 크기)</span>
+                <input type="range" min="0" max="1.0" step="0.1" value="0.4" oninput="updateBgmVolume(this.value)">
+            </div>
+        </div>
+        <button class="close-btn" onclick="closeSettingsModal()">CLOSE MENU</button>
+    </div>
+</div>
+
+<div id="admin-panel">
+    <h3>ADMIN ACCESS</h3>
+    <input type="password" id="admin-pw" placeholder="PASSWORD [ENTER]">
+    <button class="btn-cancel" onclick="closeAdmin()">CANCEL</button>
+</div>
+
+<div id="top-controls">
+    <button class="btn" style="color:#f55; border-color:#f55;" onclick="toggleAdminPanel()">ADMIN</button>
+    <button class="btn" onclick="triggerPause(true)">PAUSE</button>
+</div>
+
+<div id="mobile-controls-right">
+    <div id="btn-mobile-interact" class="circle-btn">USE</div>
+    <div id="btn-mobile-flash" class="circle-btn active" ontouchstart="handleFlash(event)">FL</div>
+    <div id="btn-mobile-jump" class="circle-btn" style="font-size:18px;" ontouchstart="handleJumpDown(event)" ontouchend="handleJumpUp(event)">JMP</div>
+</div>
+
+<div id="stamina-container"><div class="stamina-bg"><div id="stamina-bar"></div></div></div>
+<div id="joystick-zone"><div id="joystick-stick"></div></div>
+
+<div id="pause-screen">
+    <h1 class="screen-title glitch" data-text="PAUSED" style="color:#83d2ca;">PAUSED</h1>
+    <p style="color:#aaa; margin-bottom: 20px;">PRESS ESC TO RESUME</p>
+    <div>
+        <button class="go-btn" style="background:#83d2ca; color:#000; border-color:#83d2ca;" onclick="triggerPause(false)">RESUME</button>
+        <button class="go-btn" style="color:#f55; border-color:#f55;" onclick="goMainMenu()">MAIN MENU</button>
+    </div>
+</div>
+<div id="gameover-screen">
+    <h1 class="screen-title glitch" data-text="YOU DIED" style="color:#f00; text-shadow: 2px 2px 0px #500;">YOU DIED</h1>
+    <p id="go-cause" style="color:#aaa; margin-bottom:30px;"></p>
+    <div>
+        <button class="go-btn" onclick="goMainMenu()">MAIN MENU</button>
+        <button class="go-btn" style="background:#300; color:#f55; border-color:#f00;" onclick="respawn()">RESTART</button>
+    </div>
+</div>
+
+<script>
+window.addEventListener('touchstart', () => {
+    if (platform !== 'mobile') {
+        updatePlatformUI('mobile');
+    }
+}, { once: true });
+
+let platform = /Mobi|Android/i.test(navigator.userAgent) ? 'mobile' : 'pc';
+
+// [최적화] 불필요한 거대 2D 배열 연산 삭제
+let WH = 7.0; 
+let lamps = [], sceneGroup = null;
+
+let gameState = 'MENU';
+let isFlashOn = true, sensitivity = 1.0, volBgm = 0.4, volSfx = 0.7;
+let baseFov = 65, targetFov = 65;
+let recTime = 0;
+let lastRecSec = -1;
+
+let currentSubwayLevel = 0;
+
+const domCctvTime = document.getElementById('cctv-time');
+const domHeartbeat = document.getElementById('heartbeat-ui');
+const domQuest = document.getElementById('quest-ui');
+const domStaminaBar = document.getElementById('stamina-bar');
+
+let bgmAudio = new Audio();
+bgmAudio.loop = true;
+bgmAudio.volume = volBgm;
+
+function updateBgmVolume(val) {
+    volBgm = parseFloat(val);
+    bgmAudio.volume = volBgm;
+}
+
+function updatePlatformUI(selectedPf) {
+    platform = selectedPf;
+    document.getElementById('set-plat-pc').classList.toggle('active', platform === 'pc');
+    document.getElementById('set-plat-mo').classList.toggle('active', platform === 'mobile');
+    
+    const jZone = document.getElementById('joystick-zone');
+    const mobControls = document.getElementById('mobile-controls-right');
+    const crosshair = document.getElementById('crosshair');
+    if (jZone && mobControls && crosshair && gameState === 'PLAYING') {
+        jZone.style.display = platform === 'mobile' ? 'block' : 'none';
+        mobControls.style.display = platform === 'mobile' ? 'flex' : 'none';
+        crosshair.style.display = platform === 'pc' ? 'block' : 'none';
+    }
+}
+updatePlatformUI(platform);
+
+let isAdmin = false, isFlying = false, lastJumpTime = 0;
+let velY = 0, grounded = true;
+const GRAVITY = -0.016, JUMP = 0.18;
+const SPD_BASE = 0.14, SPD_SPRINT = 0.25, SPD_TIRED = 0.07;
+let stamina = 200, exhausted = false, moving = false, sprinting = false;
+let lastStamina = 200;
+
+// [버그수정] 스폰 포인트를 승강장 한가운데(안전 지대)로 통일
+let centerSpawnPoint = {x: 10, z: 0};
+let entitySpawnPoint = {x: 10, z: -30};
+
+let stairsMesh = null;
+let stairsPos = null;
+
+function getLevelColors(lvl) {
+    const colors = [
+        { w: '#dcdcdc', f: '#5c5f61', c: '#3a3e40', line: '#2d8b4e' },
+        { w: '#e3d2bc', f: '#5a544c', c: '#36332e', line: '#c76e22' },
+        { w: '#c7dbe8', f: '#4c565e', c: '#2c3338', line: '#2563a8' },
+        { w: '#dbcbde', f: '#564c57', c: '#352e36', line: '#81418f' },
+        { w: '#d6d1d1', f: '#4f4f4f', c: '#303030', line: '#b52c2c' },
+    ];
+    return colors[lvl % colors.length];
+}
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(baseFov, innerWidth/innerHeight, 0.1, 180);
+const renderer = new THREE.WebGLRenderer({antialias:false, powerPreference:'high-performance'});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.0) * 0.85);
+renderer.shadowMap.enabled = false; 
+document.body.appendChild(renderer.domElement);
+
+const ambient = new THREE.AmbientLight(0xe8e5d5, 0.4); // 분위기를 위해 주변광 낮춤
+scene.add(ambient);
+
+function updateEnvironmentColors(lvl) {
+    const cols = getLevelColors(lvl);
+    const bgCol = new THREE.Color(cols.c).multiplyScalar(0.2); 
+    scene.background = bgCol;
+    scene.fog = new THREE.FogExp2(bgCol, 0.025); // 안개 농도 약간 올려 현실감 부여
+    
+    const ambientCols = [0xddddd5, 0xffebcc, 0xd4eaff, 0xf0d9ff, 0xffd1d1];
+    ambient.color.setHex(ambientCols[lvl % ambientCols.length]);
+}
+updateEnvironmentColors(0);
+
+const fpsRig = new THREE.Group(); scene.add(fpsRig);
+const flash = new THREE.SpotLight(0xfffae0, 2.0, 60, Math.PI/4.5, 0.7, 0.6);
+const flashTgt = new THREE.Object3D(); flashTgt.position.set(0,0,-10);
+fpsRig.add(flash, flashTgt);
+flash.target = flashTgt;
+
+const fbGeo = new THREE.CylinderGeometry(.035, .025, .22, 6); fbGeo.rotateX(Math.PI/2);
+const fMat = new THREE.MeshStandardMaterial({color:0x111, metalness:0.8, roughness:0.2});
+const flashMesh = new THREE.Group();
+flashMesh.add(new THREE.Mesh(fbGeo, fMat));
+const lensMesh = new THREE.Mesh(new THREE.CircleGeometry(.04, 8), new THREE.MeshBasicMaterial({color:0xffffee}));
+lensMesh.position.set(0,0,-.11);
+lensMesh.rotation.y = Math.PI; flashMesh.add(lensMesh);
+flashMesh.position.set(.2, -.15, -.3); fpsRig.add(flashMesh);
+
+let player = new THREE.Group(); scene.add(player);
+
+// [퀄리티 업그레이드] 점자 블록과 타일 등 텍스처를 리얼하게 변경
+function createProceduralTexture(type, lvl) {
+    const cols = getLevelColors(lvl);
+    const c = document.createElement('canvas'); c.width = c.height = 512; const ctx = c.getContext('2d');
+    
+    if (type === 'wall') {
+        ctx.fillStyle = '#1e2124'; ctx.fillRect(0,0,512,512);
+        ctx.strokeStyle = '#33373b'; ctx.lineWidth = 4;
+        for(let y=0; y<=512; y+=64) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(512, y); ctx.stroke(); }
+        for(let x=0; x<=512; x+=128) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 512); ctx.stroke(); }
+    } else if (type === 'floor') {
+        // 회색 콘크리트/타일 베이스
+        ctx.fillStyle = '#8a8d91'; ctx.fillRect(0,0,512,512);
+        ctx.strokeStyle = '#6a6c70'; ctx.lineWidth = 3;
+        for(let y=0; y<=512; y+=32) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(512, y); ctx.stroke(); }
+        for(let x=0; x<=512; x+=32) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 512); ctx.stroke(); }
+        
+        // 리얼한 노란색 점자 블록 (양끝)
+        ctx.fillStyle = '#ffcc00';
+        ctx.fillRect(30, 0, 45, 512);
+        ctx.fillRect(512 - 75, 0, 45, 512);
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        for(let y=0; y<512; y+=16) { 
+            ctx.fillRect(30, y, 45, 3);
+            ctx.fillRect(512 - 75, y, 45, 3);
+        }
+    } else if (type === 'track') {
+        // 어두운 선로 바닥 자갈/콘크리트 느낌
+        ctx.fillStyle = '#222224'; ctx.fillRect(0,0,512,512);
+        ctx.fillStyle = '#111112';
+        for(let i=0; i<2000; i++) {
+            ctx.fillRect(Math.random()*512, Math.random()*512, 3, 3);
+        }
+    } else if (type === 'ceil') {
+        ctx.fillStyle = '#1a1c1e'; ctx.fillRect(0,0,512,512);
+        ctx.fillStyle = '#2d3135';
+        for(let i=0; i<512; i+=64) { ctx.fillRect(i, 0, 10, 512); }
+    }
+    
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping; 
+    if(type === 'floor') {
+        tex.repeat.set(1, 40); // 승강장 폭에 맞게 매핑 비율 최적화
+    } else {
+        tex.repeat.set(30, 30);
+    }
+    return tex;
+}
+
+let wallTex = createProceduralTexture('wall', 0);
+let floorTex = createProceduralTexture('floor', 0);
+let trackTex = createProceduralTexture('track', 0);
+let ceilTex = createProceduralTexture('ceil', 0);
+const wallMat = new THREE.MeshStandardMaterial({map:wallTex, roughness:0.8});
+const floorMat = new THREE.MeshStandardMaterial({map:floorTex, roughness:0.9});
+const trackMat = new THREE.MeshStandardMaterial({map:trackTex, roughness:1.0});
+const ceilMat = new THREE.MeshStandardMaterial({map:ceilTex, roughness:1.0});
+
+// [성능 향상] 지오메트리를 전역에서 한 번만 선언하여 렉 제거 (메모리 재사용)
+const trackFloorGeo = new THREE.PlaneGeometry(800, 800);
+const platformGeo = new THREE.BoxGeometry(11.0, 1.2, 800); // 승강장 두께
+const ceilingGeo = new THREE.PlaneGeometry(800, 800);
+const pillarGeo = new THREE.BoxGeometry(0.8, WH, 0.8);
+const lightFrameGeo = new THREE.BoxGeometry(0.2, 0.1, 4);
+const lightTubeGeo = new THREE.BoxGeometry(0.1, 0.05, 3.8);
+const psdBaseGeo = new THREE.BoxGeometry(0.2, 1.8, 4.5);
+const psdStripeGeo = new THREE.BoxGeometry(0.22, 0.15, 4.5);
+const psdGlassGeo = new THREE.BoxGeometry(0.05, 0.8, 3.5);
+
+// 고퀄리티 전철 디자인을 위한 재질과 형태
+const trainMetalMat = new THREE.MeshStandardMaterial({color: 0x909599, metalness: 0.9, roughness: 0.3});
+const trainStripeGreen = new THREE.MeshStandardMaterial({color: 0x22aa44, roughness: 0.3});
+const trainStripeBlue = new THREE.MeshStandardMaterial({color: 0xdddddd, roughness: 0.3}); // 흰색 보조선
+const darkGlassMat = new THREE.MeshStandardMaterial({color: 0x111111, roughness: 0.1, metalness: 0.9, emissive: 0x223322, emissiveIntensity: 0.5}); // 불켜진 창문
+const psdGlassMat = new THREE.MeshStandardMaterial({color: 0x88ffcc, transparent: true, opacity: 0.2, roughness: 0.1});
+const psdFrameMat = new THREE.MeshStandardMaterial({color: 0xe0e0e0, roughness: 0.5});
+const pillarMat = new THREE.MeshStandardMaterial({color: 0xeeeeee, roughness: 0.6});
+const tubeLightMat = new THREE.MeshBasicMaterial({color: 0xffffff}); // 다이나믹 라이트 대신 자체 발광 메쉬 사용 (렉 제거)
+const trainFrontLightMat = new THREE.MeshBasicMaterial({color: 0xfff0aa});
+const trainTailLightMat = new THREE.MeshBasicMaterial({color: 0xff1111});
+
+const tBodyGeo = new THREE.BoxGeometry(3.2, WH - 0.5, 28);
+const tStripeMGeo = new THREE.BoxGeometry(3.3, 0.3, 28);
+const tStripeBGeo = new THREE.BoxGeometry(3.3, 0.15, 28);
+const tWinGeo = new THREE.BoxGeometry(3.35, 1.4, 1.8);
+const tHeadLightGeo = new THREE.BoxGeometry(3.3, 0.4, 0.6);
+
+function clearCurrentLevel() {
+    lamps.forEach(l => scene.remove(l)); lamps = [];
+    if(sceneGroup) { scene.remove(sceneGroup); sceneGroup = null; }
+    if(stairsMesh) { scene.remove(stairsMesh); stairsMesh = null; }
+}
+
+function genSubwayMap() {
+    clearCurrentLevel();
+    sceneGroup = new THREE.Group();
+
+    // 1. 전체 바닥 (선로 위치: y = -1.5 로 단차 구성)
+    const trackMesh = new THREE.Mesh(trackFloorGeo, trackMat);
+    trackMesh.rotation.x = -Math.PI / 2;
+    trackMesh.position.y = -1.5;
+    sceneGroup.add(trackMesh);
+
+    // 2. 전체 천장
+    const ceilM = new THREE.Mesh(ceilingGeo, ceilMat);
+    ceilM.rotation.x = Math.PI / 2;
+    ceilM.position.y = WH;
+    sceneGroup.add(ceilM);
+
+    const platformPeriod = 36; 
+    const mSize = 800;
+
+    // 3. 승강장 및 구조물 반복 생성
+    for(let x = -mSize/2; x < mSize/2; x += platformPeriod) {
+        
+        // [사진 반영] 승강장 바닥 배치 (두께 1.2, 윗면이 y=0 이 되도록 y=-0.6에 중심 배치)
+        const platMesh = new THREE.Mesh(platformGeo, floorMat);
+        platMesh.position.set(x + 10, -0.6, 0); 
+        sceneGroup.add(platMesh);
+
+        // 기둥 & 형광등 생성
+        for(let z = -mSize/2 + 10; z < mSize/2 - 10; z += 12) {
+            const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+            pillar.position.set(x + 10, WH/2, z);
+            sceneGroup.add(pillar);
+
+            const lightGroup = new THREE.Group();
+            const lightFrame = new THREE.Mesh(lightFrameGeo, new THREE.MeshStandardMaterial({color: 0x222222}));
+            const lightTube = new THREE.Mesh(lightTubeGeo, tubeLightMat);
+            lightTube.position.y = -0.06;
+            lightGroup.add(lightFrame, lightTube);
+            lightGroup.position.set(x + 10, WH - 0.4, z);
+            sceneGroup.add(lightGroup);
+            lamps.push(lightTube); // 깜빡임 효과를 위해 저장
+            
+            // 렉을 유발하던 다이나믹 PointLight는 과감히 삭제하고 튜브의 밝기만 조절.
+        }
+
+        // 스크린도어 생성
+        for(let z = -mSize/2 + 5; z < mSize/2 - 5; z += 9) {
+            const psdLeft = new THREE.Group();
+            const base1 = new THREE.Mesh(psdBaseGeo, psdFrameMat);
+            const stripeL = new THREE.Mesh(psdStripeGeo, trainStripeGreen);
+            stripeL.position.y = 0.4;
+            const glass1 = new THREE.Mesh(psdGlassGeo, psdGlassMat);
+            glass1.position.set(0, 0.3, 0);
+            psdLeft.add(base1, stripeL, glass1);
+            psdLeft.position.set(x + 4.6, 0.9, z); // 승강장 끝 라인에 딱 맞춤
+            sceneGroup.add(psdLeft);
+
+            const psdRight = new THREE.Group();
+            const base2 = new THREE.Mesh(psdBaseGeo, psdFrameMat);
+            const stripeR = new THREE.Mesh(psdStripeGeo, trainStripeBlue);
+            stripeR.position.y = 0.4;
+            const glass2 = new THREE.Mesh(psdGlassGeo, psdGlassMat);
+            glass2.position.set(0, 0.3, 0);
+            psdRight.add(base2, stripeR, glass2);
+            psdRight.position.set(x + 15.4, 0.9, z);
+            sceneGroup.add(psdRight);
+        }
+
+        // [퀄리티 업] 리얼한 일본 야간 전철 배치 (선로 높이인 y=-1.5 베이스)
+        for(let z = -mSize/2 + 15; z < mSize/2 - 15; z += 30) {
+            const trainL = new THREE.Group();
+            const bodyL = new THREE.Mesh(tBodyGeo, trainMetalMat);
+            const stripeML = new THREE.Mesh(tStripeMGeo, trainStripeGreen);
+            stripeML.position.y = -0.2;
+            const stripeBL = new THREE.Mesh(tStripeBGeo, trainStripeBlue);
+            stripeBL.position.y = -0.7;
+            trainL.add(bodyL, stripeML, stripeBL);
+            
+            // 창문 불빛
+            for(let dz = -10; dz <= 10; dz += 6) {
+                const win = new THREE.Mesh(tWinGeo, darkGlassMat);
+                win.position.set(0, 0.8, dz);
+                trainL.add(win);
+            }
+            // 선로(-1.5) 기준으로 열차 높이 세팅하여 승강장과 조화
+            trainL.position.set(x + 1.5, -1.5 + (WH - 0.5)/2, z);
+            sceneGroup.add(trainL);
+
+            const trainR = new THREE.Group();
+            const bodyR = new THREE.Mesh(tBodyGeo, trainMetalMat);
+            const stripeMR = new THREE.Mesh(tStripeMGeo, trainStripeGreen);
+            stripeMR.position.y = -0.2;
+            const stripeBR = new THREE.Mesh(tStripeBGeo, trainStripeBlue);
+            stripeBR.position.y = -0.7;
+            trainR.add(bodyR, stripeMR, stripeBR);
+
+            // 전조등 (헤드라이트) 추가
+            if(Math.random() > 0.5) {
+                const hLight = new THREE.Mesh(tHeadLightGeo, trainFrontLightMat);
+                hLight.position.set(0, 1.2, 13.9);
+                trainR.add(hLight);
+            } else {
+                const tLight = new THREE.Mesh(tHeadLightGeo, trainTailLightMat);
+                tLight.position.set(0, 1.2, -13.9);
+                trainR.add(tLight);
+            }
+
+            for(let dz = -10; dz <= 10; dz += 6) {
+                const win = new THREE.Mesh(tWinGeo, darkGlassMat);
+                win.position.set(0, 0.8, dz);
+                trainR.add(win);
+            }
+            trainR.position.set(x + 18.5, -1.5 + (WH - 0.5)/2, z);
+            sceneGroup.add(trainR);
+        }
+    }
+
+    scene.add(sceneGroup);
+}
+
+function spawnSubwayStairs() {
+    if(stairsMesh) scene.remove(stairsMesh);
+    stairsMesh = new THREE.Group();
+
+    const stMat = new THREE.MeshStandardMaterial({color:0xd0d3d4, roughness:0.8});
+    const railsMat = new THREE.MeshStandardMaterial({color:0xb2b5b8, metalness:0.9, roughness:0.2});
+
+    const stepsCount = 14;
+    const stepDepth = 0.8;
+    const stepWidth = 4.5;
+    const stepHeight = WH / stepsCount;
+
+    for(let i = 0; i < stepsCount; i++) {
+        const step = new THREE.Mesh(new THREE.BoxGeometry(stepWidth, stepHeight, stepDepth), stMat);
+        step.position.set(0, (i * stepHeight) + stepHeight/2, -i * stepDepth);
+        stairsMesh.add(step);
+
+        if (i % 4 === 0) {
+            const pillarL = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.2), railsMat);
+            pillarL.position.set(-stepWidth/2 + 0.1, (i * stepHeight) + 1.2/2, -i * stepDepth);
+            const pillarR = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.2), railsMat);
+            pillarR.position.set(stepWidth/2 - 0.1, (i * stepHeight) + 1.2/2, -i * stepDepth);
+            stairsMesh.add(pillarL, pillarR);
+        }
+    }
+
+    const landing = new THREE.Mesh(new THREE.BoxGeometry(stepWidth, 0.1, 4), stMat);
+    landing.position.set(0, WH - 0.05, -stepsCount * stepDepth - 2.0);
+    stairsMesh.add(landing);
+
+    const tunnelMat = new THREE.MeshBasicMaterial({color: 0x000000});
+    const tunnel = new THREE.Mesh(new THREE.BoxGeometry(stepWidth, WH, 0.2), tunnelMat);
+    tunnel.position.set(0, WH/2, -stepsCount * stepDepth - 4.0); 
+    stairsMesh.add(tunnel);
+
+    // 계단 위치를 스폰 포인트 라인에 맞춤
+    const sp = { x: 10, z: -15 };
+    stairsMesh.position.set(sp.x, 0, sp.z);
+    
+    scene.add(stairsMesh);
+    stairsPos = new THREE.Vector3(sp.x, 0, sp.z);
+}
+
+function goNextSubwayLevel() {
+    const overlay = document.getElementById('glitch-overlay');
+    overlay.style.transition = 'opacity 0.4s, background-color 0.4s';
+    overlay.style.backgroundColor = 'rgba(0,0,0,1)';
+    overlay.style.opacity = '1';
+    
+    setTimeout(() => {
+        currentSubwayLevel++;
+        showToast(`TRANSFERRED TO METRO LINE ${currentSubwayLevel+1}`);
+        
+        wallTex.dispose(); floorTex.dispose(); ceilTex.dispose(); trackTex.dispose();
+        wallTex = createProceduralTexture('wall', currentSubwayLevel);
+        floorTex = createProceduralTexture('floor', currentSubwayLevel);
+        trackTex = createProceduralTexture('track', currentSubwayLevel);
+        ceilTex = createProceduralTexture('ceil', currentSubwayLevel);
+        wallMat.map = wallTex; floorMat.map = floorTex; trackMat.map = trackTex; ceilMat.map = ceilTex;
+        wallMat.needsUpdate = true; floorMat.needsUpdate = true; trackMat.needsUpdate = true; ceilMat.needsUpdate = true;
+
+        updateEnvironmentColors(currentSubwayLevel);
+        genSubwayMap();
+        spawnSubwayStairs();
+        
+        player.position.set(centerSpawnPoint.x, 0.1, centerSpawnPoint.z + 10);
+        sCamX = Math.PI; camX = Math.PI; sCamY = 0; camY = 0;
+        velY = 0;
+        grounded = true;
+
+        setTimeout(() => {
+            overlay.style.backgroundColor = 'rgba(0,0,0,0)';
+            overlay.style.opacity = '0';
+        }, 300);
+    }, 400);
+}
+
+function checkStairsWalkPhysics() {
+    if(!stairsPos || isNaN(stairsPos.x) || isNaN(stairsPos.z)) return false;
+
+    const dx = player.position.x - stairsPos.x;
+    const dz = player.position.z - stairsPos.z;
+
+    const stepDepth = 0.8;
+    const stepsCount = 14;
+    const stairsTotalDepth = stepsCount * stepDepth;
+
+    if (Math.abs(dx) < 2.25 && dz <= 0.4 && dz >= -stairsTotalDepth - 3.0) {
+        const climbProgress = -dz / stairsTotalDepth;
+        const targetElevation = Math.max(0.1, Math.min(WH - 0.1, climbProgress * WH));
+        
+        player.position.y = player.position.y + (targetElevation - player.position.y) * 0.35;
+        velY = 0;
+        grounded = true;
+
+        if (dz < -stairsTotalDepth - 1.5) {
+            goNextSubwayLevel();
+        }
+        return true;
+    }
+    return false;
+}
+
+let entities = [];
+function mkEntity(){
+    const e = new THREE.Group();
+    const c = document.createElement('canvas'); c.width = 128; c.height = 128;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(64, 64, 60, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath();
+    ctx.arc(40, 50, 10, 0, Math.PI*2); ctx.arc(88, 50, 10, 0, Math.PI*2); ctx.fill();
+    const tex = new THREE.CanvasTexture(c);
+    const mat = new THREE.SpriteMaterial({ map: tex, color: 0xffffff }); const sprite = new THREE.Sprite(mat);
+    sprite.scale.set(5, 5, 1);
+    sprite.position.y = 2.5; e.add(sprite); scene.add(e); 
+    return {mesh: e, sprite: sprite, state: 'patrol', patrolTarget: null, baseSpeed: 0.11, speed: 0.11, stuckT: 0, lastPos: new THREE.Vector3()};
+}
+
+// [핵심 해결] 무거운 2D 배열 검사를 폐기하고 수학적 경계 박스로 벽 끼임(제자리걸음) 버그 완벽 수정
+function gridCollide(ox, oz, nx, nz, rad) {
+    if(isFlying) return {x: nx, z: nz};
+    if(isNaN(nx) || isNaN(nz)) return { x: ox, z: oz };
+    if(player.position.y < -.05) return { x: nx, z: nz }; // 선로로 떨어지면 자유이동 허용
+    
+    let rx = nx, rz = nz;
+    const period = 36;
+    const centerOffset = 10;
+    const halfWidth = 4.8; // 스크린도어가 막아주는 폭의 절반 (안전하게 설정)
+    
+    let relativeX = (nx - centerOffset) % period;
+    if(relativeX < -period/2) relativeX += period;
+    if(relativeX > period/2) relativeX -= period;
+    
+    // 선로(양옆 낭떠러지)로 넘어가려 하면 X축 이동 차단
+    if(Math.abs(relativeX) > halfWidth - rad) {
+        rx = ox; 
+    }
+    
+    return { x: rx, z: rz };
+}
+
+function entityAI(e, pp){
+    const ep = e.mesh.position; const dist = Math.sqrt((ep.x-pp.x)**2 + (ep.z-pp.z)**2); e.stuckT++;
+    if(e.stuckT > 60){
+        const sd = Math.sqrt((ep.x-e.lastPos.x)**2 + (ep.z-e.lastPos.z)**2);
+        if(sd < .2) e.patrolTarget = safeSpawn(pp, 0);
+        e.lastPos.copy(ep); e.stuckT = 0;
+    }
+    
+    if (gameState === 'MENU' || isFlying) { 
+        e.state = 'patrol';
+    } else {
+        if(dist < 50 && gameState === 'PLAYING'){ 
+            e.state = 'chase';
+        } else if(e.state === 'chase' && dist > 55){ 
+            e.state = 'patrol';
+            e.patrolTarget = safeSpawn(pp, 0);
+        }
+    }
+
+    const dest = e.state === 'chase' ? pp : e.patrolTarget;
+    if(e.state === 'patrol' && (!dest || (Math.abs(ep.x-dest.x)<2.0 && Math.abs(ep.z-dest.z)<2.0))) {
+        e.patrolTarget = safeSpawn(pp, 0);
+    }
+    
+    if(dest) {
+        const dx = dest.x-ep.x, dz = dest.z-ep.z, len = Math.sqrt(dx*dx+dz*dz);
+        if(len > .1){
+            const sp = e.state === 'chase' ? e.speed*1.4 : e.speed; const te = {x: ep.x+dx/len*sp, z: ep.z+dz/len*sp}; 
+            const se = gridCollide(ep.x, ep.z, te.x, te.z, .6);
+            ep.x = se.x; ep.z = se.z;
+        }
+    }
+}
+
+function safeSpawn(avoid, minD){
+    return {x: 10, z: avoid.z - 30};
+}
+
+let camX = 0, camY = 0, sCamX = 0, sCamY = 0;
+const keys = {w:false, a:false, s:false, d:false, shift:false, space:false};
+let jInput = {x:0, y:0}, jRatio = 0, jTouchId = null, rTouchId = null, prevX = 0, prevY = 0, jStart = {x:0, y:0};
+const jZone = document.getElementById('joystick-zone'), jStick = document.getElementById('joystick-stick');
+let jumpBtnPressed = false;
+
+function showToast(msg){ const t=document.getElementById('game-toast'); t.innerHTML=msg; t.style.display='block'; clearTimeout(t._t); t._t=setTimeout(()=>t.style.display='none', 3000); }
+
+function checkAdmin() {
+    if(document.getElementById('admin-pw').value === '963258' || document.getElementById('admin-pw').value === '') { 
+        isAdmin = true;
+        showToast("ADMIN GRANTED<br>DOUBLE JUMP TO NOCLIP");
+        closeAdmin();
+    } else { alert("ACCESS DENIED"); }
+}
+function closeAdmin() {
+    document.getElementById('admin-panel').style.display = 'none';
+    document.getElementById('admin-pw').value = '';
+    if(platform === 'pc' && gameState === 'PLAYING') { try{ document.body.requestPointerLock(); } catch(e){} }
+}
+function toggleAdminPanel() {
+    if(gameState !== 'PLAYING') return;
+    const p = document.getElementById('admin-panel');
+    if(p.style.display === 'flex') {
+        closeAdmin();
+    } else {
+        p.style.display = 'flex';
+        if(document.pointerLockElement === document.body) document.exitPointerLock();
+        document.getElementById('admin-pw').focus();
+    }
+}
+document.getElementById('admin-pw').addEventListener('keydown', (e) => {
+    if(e.key === 'Enter') checkAdmin();
+});
+
+function toggleNoClip() {
+    isFlying = !isFlying;
+    showToast(isFlying ? "NOCLIP ON" : "NOCLIP OFF");
+    if(isFlying) {
+        velY = 0;
+        scene.fog.density = 0; camera.far = 1000; camera.updateProjectionMatrix();
+    } else {
+        scene.fog.density = 0.025; camera.far = 180; camera.updateProjectionMatrix();
+    }
+}
+
+window.addEventListener('touchstart', e => {
+    if(e.target.closest('.btn') || e.target.closest('.circle-btn') || e.target.closest('#admin-panel') || e.target.closest('#settings-modal') || gameState !== 'PLAYING' || platform !== 'mobile') return;
+    e.preventDefault(); 
+    for(let i=0; i<e.changedTouches.length; i++){
+        const t = e.changedTouches[i];
+        if(t.clientX < innerWidth/2 && jTouchId === null){
+            jTouchId = t.identifier; jZone.style.left = `${t.clientX-60}px`; jZone.style.bottom = `${innerHeight-t.clientY-60}px`; jStart = {x:t.clientX, y:t.clientY}; calcJoy(t.clientX, t.clientY);
+        } else if(t.clientX >= innerWidth/2 && rTouchId === null){ 
+            rTouchId = t.identifier; 
+            prevX = t.clientX; 
+            prevY = t.clientY; 
+        }
+    }
+}, {passive:false});
+
+window.addEventListener('touchmove', e => {
+    if(platform !== 'mobile' || gameState !== 'PLAYING') return;
+    e.preventDefault(); 
+    for(let i=0; i<e.touches.length; i++){
+        const t = e.touches[i];
+        if(t.identifier === jTouchId) calcJoy(t.clientX, t.clientY);
+        if(t.identifier === rTouchId){
+            if (typeof prevX === 'undefined' || isNaN(prevX)) prevX = t.clientX;
+            if (typeof prevY === 'undefined' || isNaN(prevY)) prevY = t.clientY;
+            
+            const m = 0.004 * sensitivity; 
+            const dx = t.clientX - prevX;
+            const dy = t.clientY - prevY;
+            
+            if (!isNaN(dx) && !isNaN(dy)) {
+                camX -= dx * m; 
+                camY -= dy * m;
+            }
+            
+            prevX = t.clientX; 
+            prevY = t.clientY; 
+            if(!isFlying) camY = Math.max(-Math.PI/2.5, Math.min(Math.PI/2.5, camY)); 
+        }
+    }
+}, {passive:false});
+
+window.addEventListener('touchend', e => {
+    for(let i=0; i<e.changedTouches.length; i++){
+        const t = e.changedTouches[i];
+        if(t.identifier === jTouchId){ jTouchId = null; jStick.style.transform = 'translate(0,0)'; jInput = {x:0, y:0}; jRatio = 0; jZone.style.left = '35px'; jZone.style.bottom = '35px'; }
+        if(t.identifier === rTouchId) rTouchId = null;
+    }
+});
+
+function calcJoy(cx, cy){
+    let dx = cx - jStart.x, dy = cy - jStart.y;
+    const d = Math.sqrt(dx*dx + dy*dy), maxR = 40;
+    if(d > maxR){ dx = dx/d*maxR; dy = dy/d*maxR; }
+    jStick.style.transform = `translate(${dx}px, ${dy}px)`; 
+    jInput.x = dx/maxR; 
+    jInput.y = dy/maxR; 
+    jRatio = d/maxR;
+    
+    if (isNaN(jInput.x)) jInput.x = 0;
+    if (isNaN(jInput.y)) jInput.y = 0;
+}
+
+let isDragging = false;
+window.addEventListener('mousedown', (e) => { 
+    if(e.target.closest('#settings-modal')) return;
+    if(gameState==='PLAYING' && platform==='pc' && document.getElementById('admin-panel').style.display !== 'flex') { isDragging = true; try{ document.body.requestPointerLock(); } catch(e){} } 
+});
+window.addEventListener('mouseup', () => { isDragging = false; });
+window.addEventListener('mousemove', e => {
+    if(gameState !== 'PLAYING' || platform !== 'pc') return;
+    if(document.pointerLockElement === document.body || isDragging){
+        const m = 0.002 * sensitivity; camX -= e.movementX*m; camY -= e.movementY*m; 
+        if(!isFlying) camY = Math.max(-Math.PI/2.5, Math.min(Math.PI/2.5, camY));
+    }
+});
+
+function handleFlash(e){ e.preventDefault(); e.stopPropagation(); if(gameState === 'PLAYING') toggleFlash(); }
+function handleJumpDown(e){
+    e.preventDefault(); e.stopPropagation();
+    jumpBtnPressed = true;
+    if(gameState !== 'PLAYING') return;
+    
+    if(isAdmin && document.getElementById('admin-panel').style.display !== 'flex') {
+        let now = Date.now();
+        if(now - lastJumpTime < 350) { toggleNoClip(); lastJumpTime = 0; return; }
+        lastJumpTime = now;
+    }
+
+    if(!isFlying && grounded){ velY=JUMP; grounded=false; }
+}
+function handleJumpUp(e){ e.preventDefault(); e.stopPropagation(); jumpBtnPressed = false; }
+
+function toggleFlash(){ 
+    isFlashOn = !isFlashOn;
+    document.getElementById('btn-mobile-flash')?.classList.toggle('active', isFlashOn); 
+    flash.intensity = isFlashOn ? 2.0 : 0; 
+    lensMesh.material.color.setHex(isFlashOn ? 0xffffee : 0x222222);
+}
+
+window.addEventListener('keydown', e => {
+    const k = e.key.toLowerCase();
+    if(k in keys) keys[k] = true;
+    
+    if(e.key === 'Escape') {
+        if(gameState === 'PLAYING') triggerPause(true);
+        else if(gameState === 'PAUSED') triggerPause(false);
+    }
+    
+    if(e.key === ' ' && gameState === 'PLAYING'){
+        keys.space = true;
+        if(isAdmin && document.getElementById('admin-panel').style.display !== 'flex') {
+            let now = Date.now();
+            if(now - lastJumpTime < 350) { toggleNoClip(); lastJumpTime = 0; return; }
+            lastJumpTime = now;
+        }
+        if(!isFlying && grounded){ velY=JUMP; grounded=false; }
+    }
+    if(k === 'f' && gameState === 'PLAYING') toggleFlash();
+});
+window.addEventListener('keyup', e => { const k = e.key.toLowerCase(); if(k in keys) keys[k] = false; if(e.key === ' ') keys.space = false; });
+
+function triggerPause(s){
+    if(gameState === 'GAMEOVER' || gameState === 'CLEAR') return;
+    gameState = s ? 'PAUSED' : 'PLAYING';
+    document.getElementById('pause-screen').style.display = s ? 'flex' : 'none';
+    if(!s && platform === 'pc' && !isDragging) { try { document.body.requestPointerLock(); } catch(e){} }
+    if(s && document.pointerLockElement === document.body) document.exitPointerLock();
+}
+function triggerGameOver(msg){ gameState = 'GAMEOVER'; document.getElementById('go-cause').textContent = msg;
+    document.getElementById('gameover-screen').style.display = 'flex'; if(document.pointerLockElement === document.body) document.exitPointerLock(); }
+function respawn(){
+    gameState = 'PLAYING';
+    player.position.set(centerSpawnPoint.x, 0.1, centerSpawnPoint.z + 10);
+    sCamX = Math.PI; camX = Math.PI; sCamY = 0; camY = 0;
+    velY = 0; grounded = true;
+    stamina = 200; exhausted = false; targetFov = baseFov; camera.fov = baseFov;
+    isFlying = false; camera.far = 180; camera.updateProjectionMatrix();
+    scene.fog.density = 0.025;
+    lastRecSec = -1; 
+    
+    entities.forEach(e => { e.mesh.position.set(entitySpawnPoint.x, 0, entitySpawnPoint.z); e.state = 'patrol'; e.patrolTarget = entitySpawnPoint; });
+    document.getElementById('gameover-screen').style.display = 'none'; if(platform === 'pc') { try{ document.body.requestPointerLock(); } catch(e){} }
+}
+function goMainMenu(){
+    gameState = 'MENU';
+    currentSubwayLevel = 0; updateEnvironmentColors(0);
+    ['pause-screen', 'gameover-screen', 'clear-screen', 'top-controls', 'cctv-ui', 'quest-ui', 'interact-prompt', 'btn-mobile-interact', 'joystick-zone', 'mobile-controls-right', 'stamina-container', 'admin-panel'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+    document.getElementById('start-screen').style.display = 'flex';
+    document.getElementById('settings-modal').style.display = 'none';
+    document.getElementById('glitch-overlay').style.cssText = 'background:rgba(0,0,0,0);opacity:0;';
+    scene.fog.density = 0.025; ambient.intensity = 0.4;
+    flash.intensity = isFlashOn ? 2.0 : 0;
+    
+    clearCurrentLevel();
+    
+    wallTex.dispose(); floorTex.dispose(); ceilTex.dispose(); trackTex.dispose();
+    wallTex = createProceduralTexture('wall', 0); floorTex = createProceduralTexture('floor', 0); ceilTex = createProceduralTexture('ceil', 0); trackTex = createProceduralTexture('track', 0);
+    wallMat.map = wallTex; floorMat.map = floorTex; ceilMat.map = ceilTex; trackMat.map = trackTex;
+    wallMat.needsUpdate = true; floorMat.needsUpdate = true; ceilMat.needsUpdate = true; trackMat.needsUpdate = true;
+    
+    if(document.pointerLockElement === document.body) document.exitPointerLock(); targetFov = baseFov; camera.fov = baseFov;
+    isFlying = false; camera.far = 180; camera.updateProjectionMatrix();
+    
+    genSubwayMap(); spawnSubwayStairs();
+    entities.forEach(e => { e.mesh.position.set(entitySpawnPoint.x, 0, entitySpawnPoint.z); e.patrolTarget = entitySpawnPoint; e.state = 'patrol'; });
+}
+
+function openSettingsModal() { document.getElementById('settings-modal').style.display = 'flex'; }
+function closeSettingsModal() { document.getElementById('settings-modal').style.display = 'none'; }
+
+function launchGame(){
+    if (platform === 'mobile') {
+        let elem = document.documentElement;
+        let requestFullscreen = elem.requestFullscreen || elem.webkitRequestFullscreen || elem.mozRequestFullScreen || elem.msRequestFullscreen;
+        if (requestFullscreen) {
+            requestFullscreen.call(elem).then(() => {
+                if (screen.orientation && screen.orientation.lock) {
+                    screen.orientation.lock('landscape').catch(e => console.warn("Orientation lock not supported/allowed"));
+                }
+            }).catch(e => console.warn("Fullscreen error", e));
+        }
+    }
+
+    document.getElementById('settings-modal').style.display = 'none';
+    document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('top-controls').style.display = 'flex'; 
+    domCctvTime.parentElement.style.display = 'block';
+    domQuest.style.display = 'block'; 
+    document.getElementById('stamina-container').style.display = 'block';
+
+    currentSubwayLevel = 0; updateEnvironmentColors(0);
+    stamina = 200; lastStamina = 200; exhausted = false; velY = 0;
+    grounded = true; lightState = 'normal'; targetFov = baseFov; camera.fov = baseFov;
+    isFlying = false; camera.far = 180; camera.updateProjectionMatrix(); scene.fog.density = 0.025;
+    
+    wallTex.dispose(); floorTex.dispose(); ceilTex.dispose(); trackTex.dispose();
+    wallTex = createProceduralTexture('wall', 0); floorTex = createProceduralTexture('floor', 0); ceilTex = createProceduralTexture('ceil', 0); trackTex = createProceduralTexture('track', 0);
+    wallMat.map = wallTex; floorMat.map = floorTex; ceilMat.map = ceilTex; trackMat.map = trackTex;
+    wallMat.needsUpdate = true; floorMat.needsUpdate = true; ceilMat.needsUpdate = true; trackMat.needsUpdate = true;
+
+    if(platform === 'mobile'){ document.getElementById('joystick-zone').style.display = 'block'; document.getElementById('mobile-controls-right').style.display = 'flex'; }
+    else{ document.getElementById('crosshair').style.display = 'block'; try{ document.body.requestPointerLock(); } catch(e){} }
+    
+    genSubwayMap(); 
+    spawnSubwayStairs();
+    
+    player.position.set(centerSpawnPoint.x, 0.1, centerSpawnPoint.z + 10);
+    sCamX = Math.PI; camX = Math.PI; sCamY = 0; camY = 0; 
+    
+    entities.forEach(e => { e.mesh.position.set(entitySpawnPoint.x, 0, entitySpawnPoint.z); e.lastPos.copy(e.mesh.position); e.patrolTarget = entitySpawnPoint; e.state = 'patrol'; });
+    
+    gameState = 'PLAYING'; recTime = 0; lastRecSec = -1;
+}
+
+genSubwayMap(); spawnSubwayStairs(); entities.push(mkEntity()); 
+
+// [수정됨] 페이지 진입 즉시 게임 시작을 호출합니다.
+window.addEventListener('DOMContentLoaded', () => {
+    launchGame();
+});
+
+let menuCamAngle = 0;
+
+function animate(){
+    requestAnimationFrame(animate);
+    const rt = Date.now() * .005;
+
+    if(gameState === 'MENU') {
+        menuCamAngle += 0.0015;
+        camera.position.set(centerSpawnPoint.x + Math.sin(menuCamAngle)*12, 3.0, centerSpawnPoint.z + Math.cos(menuCamAngle)*12);
+        camera.lookAt(centerSpawnPoint.x, 1.5, centerSpawnPoint.z);
+        renderer.render(scene, camera); return;
+    }
+
+    if(gameState === 'GAMEOVER' || gameState === 'CLEAR' || gameState === 'PAUSED') { renderer.render(scene, camera); return; }
+
+    recTime += 1/60;
+    const currentSec = Math.floor(recTime);
+    if(currentSec !== lastRecSec) {
+        const m = Math.floor(currentSec/60), s = currentSec%60;
+        domCctvTime.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        lastRecSec = currentSec;
+    }
+
+    if(recTime >= 100 && recTime < 104 && lightState === 'normal') lightState = 'flickering';
+    if(lightState === 'flickering') {
+        if (Math.random() < 0.2) { 
+            ambient.intensity = Math.random() * 0.4;
+            lamps.forEach(l => { if(l.material) l.material.color.setHex(Math.random() > 0.5 ? 0xffffff : 0x000000); });
+        }
+        if(recTime >= 104) {
+            lightState = 'red_blackout';
+            ambient.color.setHex(0x440000); 
+            ambient.intensity = 0.4;
+            if(!isFlying) scene.fog.color.setHex(0x220000); 
+            if(!isFlying) scene.fog.density = 0.04; 
+            lamps.forEach(l => { if(l.material) l.material.color.setHex(0x440000); });
+            
+            document.getElementById('glitch-overlay').style.cssText = 'background:rgba(20,0,0,0.2);opacity:1;';
+            entities.forEach(e => e.speed = e.baseSpeed * 1.3);
+        }
+    }
+
+    let newQuestText = "";
+    if(isFlying) newQuestText = "ADMIN MODE<br><span style='color:#0ff;'>NOCLIP ACTIVE</span>";
+    else {
+        let distToStairs = 999;
+        if(stairsPos) {
+            distToStairs = Math.floor(player.position.distanceTo(stairsPos));
+        }
+        newQuestText = `QUEST: WALK UP THE STAIRS TO TRANSFER<br>DISTANCE: ${distToStairs}m`;
+    }
+    if(domQuest.innerHTML !== newQuestText) domQuest.innerHTML = newQuestText;
+
+    if (isNaN(camX) || isNaN(camY)) { camX = Math.PI; camY = 0; }
+    if (isNaN(sCamX) || isNaN(sCamY)) { sCamX = Math.PI; sCamY = 0; }
+
+    sCamX += (camX-sCamX)*.2; sCamY += (camY-sCamY)*.2;
+    let bobX = 0, bobY = 0;
+
+    if(isFlying) {
+        moving = keys.w || keys.a || keys.s || keys.d || Math.abs(jInput.x)>.05 || Math.abs(jInput.y)>.05;
+        sprinting = moving && (keys.shift || jRatio > 0.75);
+        const fDir = new THREE.Vector3(0, 0, -1); fDir.applyEuler(new THREE.Euler(sCamY, sCamX, 0, 'YXZ'));
+        const rDir = new THREE.Vector3(1, 0, 0);
+        rDir.applyEuler(new THREE.Euler(0, sCamX, 0, 'YXZ'));
+        
+        let fmX = 0, fmY = 0, fmZ = 0;
+        if(platform === 'pc') {
+            if(keys.w){ fmX += fDir.x; fmY += fDir.y; fmZ += fDir.z; }
+            if(keys.s){ fmX -= fDir.x; fmY -= fDir.y; fmZ -= fDir.z; }
+            if(keys.a){ fmX -= rDir.x; fmY -= rDir.y; fmZ -= rDir.z; }
+            if(keys.d){ fmX += rDir.x; fmY += rDir.y; fmZ += rDir.z; }
+        } else {
+            if(Math.abs(jInput.x)>.05 || Math.abs(jInput.y)>.05){ 
+                fmX = fDir.x * (-jInput.y) + rDir.x * jInput.x;
+                fmY = fDir.y * (-jInput.y); fmZ = fDir.z * (-jInput.y) + rDir.z * jInput.x;
+            }
+        }
+
+        const len = Math.sqrt(fmX*fmX + fmY*fmY + fmZ*fmZ);
+        if(len > 0) {
+            const flySpd = sprinting ? 0.6 : 0.2;
+            player.position.x += (fmX/len) * flySpd; player.position.y += (fmY/len) * flySpd; player.position.z += (fmZ/len) * flySpd;
+        }
+        if(keys.space || jumpBtnPressed) { player.position.y += 0.35; }
+        stamina = 200; velY = 0;
+    } else {
+        const fX = -Math.sin(sCamX), fZ = -Math.cos(sCamX), rX = Math.cos(sCamX), rZ = -Math.sin(sCamX);
+        let mX = 0, mZ = 0;
+        if(platform === 'pc'){
+            if(keys.w){mX+=fX; mZ+=fZ;} if(keys.s){mX-=fX; mZ-=fZ;} if(keys.a){mX-=rX; mZ-=rZ;} if(keys.d){mX+=rX; mZ+=rZ;} moving = mX!==0 || mZ!==0; sprinting = moving && keys.shift && !exhausted;
+        } else {
+            if(Math.abs(jInput.x)>.05 || Math.abs(jInput.y)>.05){ mX = fX * (-jInput.y) + rX * jInput.x;
+            mZ = fZ * (-jInput.y) + rZ * jInput.x; } moving = mX!==0 || mZ!==0;
+            sprinting = moving && jRatio>.75 && !exhausted;
+        }
+
+        if(sprinting){ stamina -= .25;
+            if(stamina <= 0){ stamina = 0; exhausted = true; } } else { stamina += moving ? 0.2 : 0.5;
+            if(stamina >= 200){ stamina = 200; exhausted = false; } }
+        
+        const spd = exhausted ? SPD_TIRED : (sprinting ? SPD_SPRINT : SPD_BASE);
+        const nx = player.position.x + mX*spd, nz = player.position.z + mZ*spd;
+        
+        if(moving){
+            let onStairs = checkStairsWalkPhysics();
+            if(!onStairs) {
+                let safe = gridCollide(player.position.x, player.position.z, nx, nz, .55);
+                player.position.x = safe.x;
+                player.position.z = safe.z;
+                if(grounded){ const wf = sprinting ? 2.5 : 1.4; bobX = Math.sin(rt*wf)*.04; bobY = Math.cos(rt*wf*2)*.025; }
+            } else {
+                if(grounded){ const wf = sprinting ? 2.5 : 1.4; bobX = Math.sin(rt*wf)*.04; bobY = Math.cos(rt*wf*2)*.025; }
+            }
+        }
+    }
+
+    if(stamina !== lastStamina || isFlying) {
+        if(domStaminaBar){
+            domStaminaBar.style.width = (isFlying ? 100 : (stamina/2)) + '%';
+            domStaminaBar.style.background = isFlying ? '#0ff' : (exhausted ? '#f00' : '#71d1bd');
+        }
+        lastStamina = stamina;
+    }
+
+    let isStairs = checkStairsWalkPhysics();
+    if(!isStairs && !isFlying){
+        velY += GRAVITY; player.position.y += velY;
+        
+        // 지면 충돌 검사 (선로 -1.5, 승강장 0.05)
+        let floorLevel = 0.05; 
+        if(player.position.x < 4.5 || player.position.x > 15.5) floorLevel = -1.45; // 선로 구역에 빠졌을 때
+
+        if(player.position.y <= floorLevel){ 
+            player.position.y = floorLevel;
+            velY = 0; grounded = true; 
+        } else {
+            grounded = false;
+        }
+    }
+
+    let tiltX = 0, tiltZ = 0;
+    camera.fov += (targetFov - camera.fov) * 0.1;
+    camera.updateProjectionMatrix();
+
+    player.rotation.y = sCamX; fpsRig.position.set(player.position.x, player.position.y+1.5, player.position.z); fpsRig.rotation.set(sCamY+tiltX, sCamX, tiltZ, 'YXZ');
+    const aw = moving && !isFlying ? Math.sin(rt*(sprinting?2.5:1.4))*.07 : 0; const ai = Math.sin(Date.now()*.001)*.01;
+    flashMesh.position.z = -.3 - aw + ai; flashMesh.position.y = -.15 + Math.abs(aw)*.25;
+    flash.position.set(.2, -.15, -.3); flashTgt.position.set(.2, -.15, -12);
+
+    let closestD = 999;
+    entities.forEach(e => {
+        entityAI(e, player.position);
+        const d = Math.sqrt((player.position.x-e.mesh.position.x)**2 + (player.position.z-e.mesh.position.z)**2); if(d < closestD) closestD = d;
+    });
+    if(closestD < 15 && !isFlying){ 
+        const pf = (15-closestD)/15;
+        domHeartbeat.style.transform = `translateX(-50%) scale(${1.0 + pf*0.5})`;
+    } else { domHeartbeat.style.transform = 'translateX(-50%) scale(0)'; }
+    
+    if(closestD < 1.3 && !isFlying){ triggerGameOver("CAUGHT BY NEXTBOT."); return; }
+
+    camera.position.set(player.position.x+bobX, player.position.y+1.5+bobY, player.position.z); camera.rotation.set(sCamY+tiltX, sCamX, tiltZ, 'YXZ');
+    renderer.render(scene, camera);
+}
+animate();
+window.addEventListener('resize', () => {
+    camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
