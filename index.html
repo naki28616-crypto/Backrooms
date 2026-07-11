@@ -27,7 +27,7 @@
         
         #mobile-controls-right { position:absolute; bottom:30px; right:30px; display:none; flex-direction:column; gap:15px; z-index:220; }
         .circle-btn { width:60px; height:60px; background:rgba(20,20,20,.8); border:2px solid #544e3e; border-radius:50%; color:#e8e4cf; font-size:22px; display:flex; justify-content:center; align-items:center; cursor:pointer; touch-action:none; }
-        .circle-btn.active { background:#d1bd71; color:#111; border-color:#fff; }
+        .circle-btn.active { background:#d1bd71; color:#111; border-color:#fff; box-shadow: 0 0 10px rgba(210, 190, 131, 0.5); }
         #btn-mobile-interact { background:#ffea9f!important; color:#111!important; border-color:#fff!important; display:none; font-size:26px; animation:pulse 1s infinite; z-index:230; }
         @keyframes pulse{ 0%{transform:scale(1);} 50%{transform:scale(1.1);} 100%{transform:scale(1);} }
         
@@ -42,7 +42,7 @@
         #joystick-zone { position:absolute; bottom:35px; left:35px; width:120px; height:120px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.2); border-radius:50%; z-index:10; touch-action:none; display:none; }
         #joystick-stick { position:absolute; top:35px; left:35px; width:50px; height:50px; background:rgba(255,255,255,.4); border-radius:50%; }
 
-    #start-screen{ position:absolute; top:0; left:0; width:100%; height:100%; z-index:200; display:flex; flex-direction:column; justify-content:center; align-items:flex-start; text-align:left; padding-left:80px; color:#fff; background:radial-gradient(circle, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.8) 100%); pointer-events:auto; }
+        #start-screen{ position:absolute; top:0; left:0; width:100%; height:100%; z-index:200; display:flex; flex-direction:column; justify-content:center; align-items:flex-start; text-align:left; padding-left:80px; color:#fff; background:radial-gradient(circle, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.8) 100%); pointer-events:auto; box-sizing: border-box; }
         #loading-screen { position:absolute; top:0; left:0; width:100%; height:100%; background:#000; z-index:250; display:none; flex-direction:column; justify-content:center; align-items:center; text-align:center; color:#fff; pointer-events:none; }
         .rec-indicator { font-size: 16px; font-weight: 900; color: #ff3c3c; letter-spacing: 4px; margin-bottom: 30px; text-shadow: 0 0 8px rgba(255, 60, 60, 0.6); }
         .red-dot { width: 12px; height: 12px; background-color: #ff3c3c; border-radius: 50%; display: inline-block; margin-right: 8px; animation: blink 1s steps(2) infinite; }
@@ -68,11 +68,41 @@
         .system-btn { padding: 10px 30px; font-size: 9.8px; font-weight: 950; letter-spacing: 5px; color: #d2be83; background: transparent; border: 1px solid #d2be83; border-radius: 3px; cursor: pointer; font-family: inherit; transition: all 0.2s ease; }
         .system-btn:hover { background: rgba(210, 190, 131, 0.2); border-color:#fff; color:#fff; }
 
-        #settings-modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 250; display: none; justify-content: center; align-items: center; }
-        .settings-box { background: rgba(15, 14, 10, 0.95); border: 2px solid #8b753a; box-shadow: 0 0 30px rgba(139, 117, 58, 0.3), inset 0 0 15px rgba(0,0,0,1); padding: 40px; width: 340px; text-align: center; display: flex; flex-direction: column; gap: 30px; animation: box-pop 0.2s ease-out; }
-        @keyframes box-pop { from { transform: scale(0.9); opacity:0; } to { transform: scale(1); opacity:1; } }
+        #settings-modal {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 8, 5, 0.98);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            padding: 20px;
+            box-sizing: border-box;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .settings-box {
+            background: rgba(15, 14, 10, 0.95);
+            border: 2px solid #8b753a;
+            box-shadow: 0 0 30px rgba(139, 117, 58, 0.5), inset 0 0 20px rgba(0,0,0,1);
+            padding: 30px;
+            width: 95%;
+            max-width: 800px;
+            max-height: 90%;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            animation: box-pop 0.3s ease-out;
+            box-sizing: border-box;
+        }
+        @keyframes box-pop { from { transform: scale(0.95); opacity:0; } to { transform: scale(1); opacity:1; } }
 
-        .settings-header { color: #d2be83; font-size: 22px; font-weight: 900; letter-spacing: 3px; margin: 0; text-shadow: 2px 2px 4px #000; }
+        .settings-header { color: #d2be83; font-size: 24px; font-weight: 900; letter-spacing: 3px; margin: 0; text-shadow: 2px 2px 4px #000; text-align: center; }
         .setting-section { display: flex; flex-direction: column; gap: 10px; text-align: left; }
         .setting-label { font-weight: bold; font-size: 13px; color: #d2be83; text-shadow: 1px 1px 2px #000; letter-spacing: 1px; margin-bottom: 5px;}
         .platform-toggles { display: flex; gap: 10px; }
@@ -82,8 +112,12 @@
         .menu-setting-row { display: flex; flex-direction: column; gap: 8px; font-weight: bold; font-size: 13px; color: #d2be83; text-shadow: 1px 1px 2px #000; letter-spacing: 1px; }
         .menu-setting-row input[type=range] { width: 100%; cursor: pointer; accent-color: #d2be83; background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px; outline: none; -webkit-appearance: none; }
         .menu-setting-row input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #d2be83; border: 2px solid #111; }
-        .close-btn { background: transparent; color: #aaa; border: 1px solid #555; padding: 12px; font-size: 14px; font-weight: bold; letter-spacing: 2px; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+        .close-btn { background: transparent; color: #aaa; border: 1px solid #555; padding: 12px; font-size: 14px; font-weight: bold; letter-spacing: 2px; cursor: pointer; transition: 0.2s; margin-top: 10px; width: 100%; }
         .close-btn:hover { background: #333; color: #fff; border-color: #fff; }
+        
+        #history-list { background: #000; border: 1px solid #333; max-height: 200px; overflow-y: auto; margin-top: 10px; }
+        #history-list div { padding: 10px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+        #history-list div:last-child { border-bottom: none; }
 
         #gameover-screen, #pause-screen, #clear-screen { position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(5,5,5,.9); z-index:150; display:none; flex-direction:column; justify-content:center; align-items:center; backdrop-filter: blur(5px); }
         .screen-title { font-size:40px; margin-bottom:10px; letter-spacing:5px; font-weight:900; text-align: center; }
@@ -95,25 +129,6 @@
         #admin-pw { background:#000; color:#fff; border:1px solid #f55; padding:15px; margin-bottom:20px; width:220px; text-align:center; font-size:18px; outline:none; font-family:monospace; }
         #admin-panel .btn-cancel { background:#222; color:#aaa; border:1px solid #555; padding:12px; cursor:pointer; font-family:monospace; width:100%; transition:all 0.2s; font-weight: bold; }
         #admin-panel .btn-cancel:hover { background:#444; color:#fff; }
-        #btn-open-settings {
-            position: absolute; top: 20px; right: 20px; z-index: 100;
-            padding: 10px 15px; background: #333; color: white;
-            border: 1px solid #666; cursor: pointer; font-family: inherit; font-size: 16px;
-        }
-        #btn-open-settings:hover { background: #555; }
-        
-        #settings-modal {
-            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.95); z-index: 9999; color: white;
-            padding: 50px; box-sizing: border-box; overflow-y: auto; font-family: 'Courier New', Courier, monospace;
-        }
-        .settings-section { border: 1px solid #444; padding: 20px; margin-bottom: 20px; background: #111; }
-        .btn { background: #333; color: white; border: 1px solid #666; padding: 10px 15px; cursor: pointer; font-family: inherit; }
-        .btn:hover { background: #555; }
-        
-        #history-list { background: #000; border: 1px solid #333; max-height: 250px; overflow-y: auto; margin-top: 10px; }
-        #history-list div { padding: 10px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
-        #history-list div:last-child { border-bottom: none; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -136,26 +151,12 @@
     <div class="glitch glitch-sub" data-text="LEVEL 0">LEVEL 0</div>
     <h1 class="glitch glitch-title" data-text="THE BACKROOMS">THE BACKROOMS</h1>
     <div class="main-btn-group">
-
-    <button class="play-btn glitch" data-text="PLAY" onclick="launchGame()">PLAY</button>
-
-    <div style="display:flex;gap:15px;">
-        <button class="system-btn" onclick="openSettingsModal()">SYSTEM SETTINGS</button>
-        <button class="system-btn" onclick="loadSave()">LOAD SAVE</button>
-        <button class="system-btn" onclick="openStartLogin()">LOGIN</button>
-    </div>
-    <div id="login-popup" style="display:none; margin-top:20px;">
-    <div style="background:rgba(0,0,0,.8); border:2px solid #888; padding:20px; width:260px;">
-        <h3>ADMIN LOGIN</h3>
-        <input id="start-login" type="password" placeholder="password" onkeydown="if(event.key==='Enter')loginFromStart();">
-        <div style="margin-top:10px;">
-            <button class="system-btn" onclick="loginFromStart()">LOGIN</button>
-            <button class="system-btn" onclick="closeStartLogin()">CANCEL</button>
-        </div>
+        <button class="play-btn glitch" data-text="PLAY" onclick="launchGame()">PLAY</button>
+        <div style="display:flex;gap:15px;">
+            <button class="system-btn" onclick="openSettingsModal()">SYSTEM SETTINGS</button>
+            <button class="system-btn" onclick="loadSave()">LOAD SAVE</button>
         </div>
     </div>
-
-</div>
 </div>
 
 <div id="loading-screen">
@@ -165,24 +166,55 @@
 
 <div id="settings-modal">
     <div class="settings-box">
-        <h2 class="settings-header glitch" data-text="SETTINGS">SETTINGS</h2>
-        <div class="setting-section">
-            <div class="setting-label">DEVICE TYPE (기기 선택)</div>
-            <div class="platform-toggles">
-                <button id="set-plat-pc" class="toggle-btn" onclick="updatePlatformUI('pc')">PC</button>
-                <button id="set-plat-mo" class="toggle-btn" onclick="updatePlatformUI('mobile')">MOBILE</button>
+        <h2 class="settings-header glitch" data-text="SETTINGS & SYSTEM">SETTINGS & SYSTEM</h2>
+        
+        <div style="display: flex; flex-wrap: wrap; gap: 30px; text-align: left; width: 100%;">
+            <!-- Left Column: Game Control Settings -->
+            <div style="flex: 1; min-width: 280px; display: flex; flex-direction: column; gap: 20px;">
+                <div class="setting-section">
+                    <div class="setting-label">DEVICE TYPE (기기 선택)</div>
+                    <div class="platform-toggles">
+                        <button id="set-plat-pc" class="toggle-btn" onclick="updatePlatformUI('pc')">PC</button>
+                        <button id="set-plat-mo" class="toggle-btn" onclick="updatePlatformUI('mobile')">MOBILE</button>
+                    </div>
+                </div>
+                <div class="slider-group">
+                    <div class="menu-setting-row">
+                        <span>SENSITIVITY (감도)</span>
+                        <input type="range" min="0.1" max="3.0" step="0.1" value="1.0" oninput="sensitivity=parseFloat(this.value)">
+                    </div>
+                    <div class="menu-setting-row">
+                        <span>BGM VOLUME (브금 크기)</span>
+                        <input type="range" min="0" max="1.0" step="0.1" value="0.4" oninput="updateBgmVolume(this.value)">
+                    </div>
+                </div>
+                <!-- Login section inside settings -->
+                <div class="setting-section" style="border-top: 1px solid #444; padding-top: 15px; margin-top: 10px;">
+                    <div class="setting-label">ADMIN LOGIN (관리자 로그인)</div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input id="settings-login-pw" type="password" placeholder="password" style="background:#000; color:#fff; border:1px solid #8b753a; padding:10px; font-family:monospace; width: 60%; box-sizing: border-box;" onkeydown="if(event.key==='Enter')loginFromSettings();">
+                        <button class="system-btn" style="padding: 10px; font-size: 11px; flex: 1;" onclick="loginFromSettings()">LOGIN</button>
+                    </div>
+                    <div id="admin-status-text" style="color: #8b753a; font-size: 12px; margin-top: 5px;">Not Logged In</div>
+                </div>
+            </div>
+            
+            <!-- Right Column: Spawn Points & Timeline History -->
+            <div style="flex: 1; min-width: 280px; display: flex; flex-direction: column; gap: 20px; border-left: 1px solid #444; padding-left: 20px;">
+                <div class="setting-section">
+                    <div class="setting-label">SPAWN POINT (스폰 포인트)</div>
+                    <button id="btn-load-h-spawn" class="system-btn" style="width: 100%; padding: 12px; font-size: 13px; text-align: center; border-color: #8b753a; color: #d2be83;" onclick="loadHSpawnFromSettings()">📍 LOAD SAVED SPAWN (H키 저장 위치)</button>
+                </div>
+                <div class="setting-section">
+                    <div class="setting-label">TIMELINE HISTORY (이전 기록)</div>
+                    <div style="font-size: 11px; color: #888; margin-bottom: 5px;">원하는 시간대의 나갔던 자리나 죽었던 자리로 가기</div>
+                    <div id="history-list">
+                        <!-- History items will be dynamically inserted here -->
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="slider-group">
-            <div class="menu-setting-row">
-                <span>SENSITIVITY (감도)</span>
-                <input type="range" min="0.1" max="3.0" step="0.1" value="1.0" oninput="sensitivity=parseFloat(this.value)">
-            </div>
-            <div class="menu-setting-row">
-                <span>BGM VOLUME (브금 크기)</span>
-                <input type="range" min="0" max="1.0" step="0.1" value="0.4" oninput="updateBgmVolume(this.value)">
-            </div>
-        </div>
+        
         <button class="close-btn" onclick="closeSettingsModal()">CLOSE MENU</button>
     </div>
 </div>
@@ -229,6 +261,10 @@
 </div>
 
 <script>
+let savedHSpawn = JSON.parse(localStorage.getItem('savedHSpawn')) || null;
+let spawnHistory = JSON.parse(localStorage.getItem('spawnHistory')) || [];
+let selectedTargetSpawn = null;
+
 let platform = /Mobi|Android/i.test(navigator.userAgent) ? 'mobile' : 'pc';
 
 let ROWS = 55, COLS = 55; 
@@ -695,7 +731,7 @@ function spawnKey(){
     scene.add(keyMesh);
 }
 
-function buildUnderground(){
+function buildUnderground(targetSpawn){
     ugObjs.forEach(o=>scene.remove(o)); ugObjs=[];
     if(ugWalls){scene.remove(ugWalls); ugWalls=null;} if(ugFloor){scene.remove(ugFloor); ugFloor=null;} if(ugCeil){scene.remove(ugCeil); ugCeil=null;}
     if(ladderItem){scene.remove(ladderItem); ladderItem=null;} if(ladderMesh){scene.remove(ladderMesh); ladderMesh=null;} if(holeGroup){scene.remove(holeGroup); holeGroup=null;}
@@ -712,6 +748,21 @@ function buildUnderground(){
     carve(1,1);
     
     ugOX = pitCX; ugOZ = pitCZ;
+
+    if (targetSpawn) {
+        let c = Math.floor((targetSpawn.x - ugOX + (UG_C*UG_U)/2) / UG_U);
+        let r = Math.floor((targetSpawn.z - ugOZ + (UG_R*UG_U)/2) / UG_U);
+        for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+                let nr = r + dr;
+                let nc = c + dc;
+                if (nr >= 0 && nr < UG_R && nc >= 0 && nc < UG_C) {
+                    ugMap[nr][nc] = 0;
+                }
+            }
+        }
+    }
+    
     function ugW(r,c){ return {x: ugOX + (c-UG_C/2)*UG_U + UG_U/2, z: ugOZ + (r-UG_R/2)*UG_U + UG_U/2}; }
 
     let wc = 0; for(let r=0; r<UG_R; r++) for(let c=0; c<UG_C; c++) if(ugMap[r][c]===1) wc++;
@@ -940,26 +991,15 @@ function toggleAdminPanel() {
     }
 }
 function openStartLogin() {
-    document.getElementById("login-popup").style.display = "block";
-    document.getElementById("start-login").focus();
+    openSettingsAndFocusLogin();
 }
 
 function closeStartLogin() {
-    document.getElementById("login-popup").style.display = "none";
-    document.getElementById("start-login").value = "";
+    closeSettingsModal();
 }
 
 function loginFromStart() {
-    const value = document.getElementById("start-login").value.trim();
-    if (value === "admin" || value === "ADMIN" || value === "963258") {
-        isAdmin = true;
-        showToast("ADMIN LOGIN SUCCESS");
-        closeStartLogin();
-        document.querySelector("#start-screen button[onclick='openStartLogin()']").innerText = "ADMIN ✓";
-        document.querySelector("#start-screen button[onclick='openStartLogin()']").disabled = true;
-        return;
-    }
-    alert("ACCESS DENIED");
+    loginFromSettings();
 }
 document.getElementById('admin-pw').addEventListener('keydown', (e) => {
     if(e.key === 'Enter') checkAdmin();
@@ -1126,11 +1166,16 @@ function triggerPause(s){
     if(!s && platform === 'pc' && !isDragging) { try { document.body.requestPointerLock(); } catch(e){} }
     if(s && document.pointerLockElement === document.body) document.exitPointerLock();
 }
-function triggerGameOver(msg){ gameState = 'GAMEOVER'; document.getElementById('go-cause').textContent = msg;
-    document.getElementById('gameover-screen').style.display = 'flex'; if(document.pointerLockElement === document.body) document.exitPointerLock(); }
+function triggerGameOver(msg){ 
+    saveHistoryRecord('💀 사망');
+    gameState = 'GAMEOVER'; 
+    document.getElementById('go-cause').textContent = msg;
+    document.getElementById('gameover-screen').style.display = 'flex'; 
+    if(document.pointerLockElement === document.body) document.exitPointerLock(); 
+}
 function respawn(){
     gameState = 'PLAYING'; if(underground) exitUnderground();
-    player.position.set(centerSpawnPoint.x, 0.1, centerSpawnPoint.z);
+    applySpawnLogic();
     sCamX = Math.PI; camX = Math.PI; sCamY = 0; camY = 0;
     velY = 0; grounded = true;
     stamina = 200; exhausted = false; targetFov = baseFov; camera.fov = baseFov;
@@ -1142,6 +1187,7 @@ function respawn(){
     document.getElementById('gameover-screen').style.display = 'none'; if(platform === 'pc') { try{ document.body.requestPointerLock(); } catch(e){} }
 }
 function goMainMenu(){
+    saveHistoryRecord('🚪 퇴장');
     gameState = 'MENU';
     underground = false; hasLadder = false; ladderPlaced = false; climbing = false;
     ['pause-screen', 'gameover-screen', 'clear-screen', 'top-controls', 'cctv-ui', 'quest-ui', 'interact-prompt', 'btn-mobile-interact', 'joystick-zone', 'mobile-controls-right', 'stamina-container', 'ladder-hud', 'admin-panel', 'loading-screen'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'none'; });
@@ -1170,8 +1216,20 @@ function goMainMenu(){
     entities.forEach(e => { e.mesh.position.set(entitySpawnPoint.x, 0, entitySpawnPoint.z); e.patrolTarget = entitySpawnPoint; e.state = 'patrol'; });
 }
 
-function openSettingsModal() { document.getElementById('settings-modal').style.display = 'flex'; }
-function closeSettingsModal() { document.getElementById('settings-modal').style.display = 'none'; }
+function openSettingsModal() { 
+    document.getElementById('settings-modal').style.display = 'flex'; 
+    updateHistoryUI();
+    if (isAdmin) {
+        document.getElementById("admin-status-text").innerText = "Logged In (ADMIN ✓)";
+        document.getElementById("admin-status-text").style.color = "#0ff";
+    } else {
+        document.getElementById("admin-status-text").innerText = "Not Logged In";
+        document.getElementById("admin-status-text").style.color = "#8b753a";
+    }
+}
+function closeSettingsModal() { 
+    document.getElementById('settings-modal').style.display = 'none'; 
+}
 
 function launchGame(isLoad = false){
     closeStartLogin();
@@ -1211,10 +1269,11 @@ function launchGame(isLoad = false){
         else{ document.getElementById('crosshair').style.display = 'block'; try{ document.body.requestPointerLock();
         } catch(e){} }
         
-        genRandomMap(); buildGraphics();
+        genRandomMap(); 
+        applySpawnLogic();
+        buildGraphics();
         buildSurfaceHole(); 
         
-        player.position.set(centerSpawnPoint.x, 0.1, centerSpawnPoint.z);
         sCamX = Math.PI;
         camX = Math.PI; sCamY = 0; camY = 0; 
         
@@ -1518,120 +1577,175 @@ animate();
 window.addEventListener('resize', () => {
     camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight);
 });
-let savedHSpawn = JSON.parse(localStorage.getItem('savedHSpawn')) || null;
-        let spawnHistory = JSON.parse(localStorage.getItem('spawnHistory')) || [];
-        let selectedTargetSpawn = null; // 특정 시간대나 H포인트를 선택했을 때 담기는 변수
 
-        const settingsModal = document.getElementById('settings-modal');
-        const historyList = document.getElementById('history-list');
-
-        // 셋팅 창 열기/닫기
-        document.getElementById('btn-open-settings').addEventListener('click', () => {
-            settingsModal.style.display = 'block';
-            updateHistoryUI();
-        });
-        document.getElementById('btn-close-settings').addEventListener('click', () => {
-            settingsModal.style.display = 'none';
-        });
-
-        // H키로 스폰 포인트 저장
-        window.addEventListener('keydown', (e) => {
-            if(e.key.toLowerCase() === 'h') {
-                if(typeof player !== 'undefined' && player.position) {
-                    savedHSpawn = { x: player.position.x, y: player.position.y, z: player.position.z };
-                    localStorage.setItem('savedHSpawn', JSON.stringify(savedHSpawn));
-                    showToast("📍 스폰 포인트가 저장되었습니다!");
-                }
-            }
-        });
-
-        function showToast(msg) {
-            const toast = document.createElement('div');
-            toast.innerText = msg;
-            toast.style.cssText = "position:absolute; bottom:30px; left:50%; transform:translateX(-50%); background:rgba(0,255,0,0.8); color:#000; padding:10px 20px; z-index:99999; font-weight:bold; border-radius:5px; transition: opacity 0.5s;";
-            document.body.appendChild(toast);
-            setTimeout(() => { toast.style.opacity = '0'; }, 1500);
-            setTimeout(() => toast.remove(), 2000);
+// H키로 스폰 포인트 저장
+window.addEventListener('keydown', (e) => {
+    if(e.key.toLowerCase() === 'h') {
+        if(typeof player !== 'undefined' && player.position) {
+            savedHSpawn = { x: player.position.x, y: player.position.y, z: player.position.z };
+            localStorage.setItem('savedHSpawn', JSON.stringify(savedHSpawn));
+            saveHistoryRecord('📍 저장됨');
+            showToast("📍 스폰 포인트가 저장되었습니다!");
         }
+    }
+});
 
-        // 죽었을 때 / 나갔을 때 분 단위까지 세세한 기록 저장
-        window.saveHistoryRecord = function(type) {
-            if(typeof player === 'undefined' || !player.position) return;
-            const now = new Date();
-            const timeStr = `${now.getHours()}시 ${now.getMinutes()}분 ${now.getSeconds()}초`;
+function saveHistoryRecord(type) {
+    if(typeof player === 'undefined' || !player.position) return;
+    const now = new Date();
+    const timeStr = `${now.getHours()}시 ${now.getMinutes()}분 ${now.getSeconds()}초`;
 
-            const record = {
-                id: Date.now(),
-                type: type, // '💀 사망' or '🚪 퇴장'
-                timeStr: timeStr,
-                x: player.position.x,
-                y: player.position.y,
-                z: player.position.z
-            };
+    const record = {
+        id: Date.now(),
+        type: type,
+        timeStr: timeStr,
+        x: player.position.x,
+        y: player.position.y,
+        z: player.position.z
+    };
 
-            spawnHistory.unshift(record); // 최신 기록을 맨 위로
-            if(spawnHistory.length > 20) spawnHistory.pop(); // 최대 20개까지만 유지
-            localStorage.setItem('spawnHistory', JSON.stringify(spawnHistory));
-        };
+    spawnHistory.unshift(record);
+    if(spawnHistory.length > 20) spawnHistory.pop();
+    localStorage.setItem('spawnHistory', JSON.stringify(spawnHistory));
+}
 
-        // 창을 닫거나 나갈 때 (퇴장) 기록
-        window.addEventListener('beforeunload', () => {
-            saveHistoryRecord('🚪 퇴장');
-        });
+window.addEventListener('beforeunload', () => {
+    saveHistoryRecord('🚪 퇴장');
+});
 
-        // 셋팅창의 타임라인 기록 리스트 UI 렌더링
-        function updateHistoryUI() {
-            historyList.innerHTML = '';
-            if(spawnHistory.length === 0) {
-                historyList.innerHTML = '<div style="color:#666; padding:10px;">기록이 없습니다.</div>';
-                return;
-            }
-            spawnHistory.forEach(record => {
-                const div = document.createElement('div');
-                div.innerHTML = `
-                    <span>${record.type} | ${record.timeStr}</span>
-                    <button class="btn" onclick="spawnAtTarget(${record.x}, ${record.y}, ${record.z})">이 곳으로 가기</button>
-                `;
-                historyList.appendChild(div);
-            });
+function updateHistoryUI() {
+    const historyList = document.getElementById('history-list');
+    if (!historyList) return;
+    historyList.innerHTML = '';
+    if(spawnHistory.length === 0) {
+        historyList.innerHTML = '<div style="color:#666; padding:10px;">기록이 없습니다.</div>';
+        return;
+    }
+    spawnHistory.forEach(record => {
+        const div = document.createElement('div');
+        div.style.cssText = "padding: 10px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; font-size: 12px;";
+        div.innerHTML = `
+            <span style="color:#d2be83;">${record.type} | ${record.timeStr}</span>
+            <button class="btn" style="padding: 5px 10px; font-size: 11px;" onclick="spawnAtTarget(${record.x}, ${record.y}, ${record.z})">이동</button>
+        `;
+        historyList.appendChild(div);
+    });
+}
+
+window.spawnAtTarget = function(x, y, z) {
+    selectedTargetSpawn = { x, y, z };
+    document.getElementById('settings-modal').style.display = 'none';
+    
+    if (gameState === 'MENU' || gameState === 'GAMEOVER') {
+        launchGame();
+    } else {
+        player.position.set(x, y, z);
+        if (y < -10.0) {
+            underground = true;
+            buildUnderground({x, y, z});
+        } else {
+            underground = false;
+            clearAreaAround(x, z);
         }
+        showToast("📍 선택한 위치로 스폰되었습니다!");
+    }
+};
 
-        // 특정 타임라인(기록) 위치로 이동
-        window.spawnAtTarget = function(x, y, z) {
-            selectedTargetSpawn = { x, y, z };
-            settingsModal.style.display = 'none';
+function loadHSpawnFromSettings() {
+    if (savedHSpawn) {
+        spawnAtTarget(savedHSpawn.x, savedHSpawn.y, savedHSpawn.z);
+    } else {
+        alert("저장된 스폰 포인트가 없습니다! (게임 중 H키를 눌러 저장하세요)");
+    }
+}
 
-            // ❗ 여기에 기존 '게임 시작(Start)' 역할을 하는 함수를 호출해 줘야 해 ❗
-            // (예: document.getElementById('start-screen').style.display = 'none'; startGame(); 등)
+function openSettingsAndFocusLogin() {
+    openSettingsModal();
+    setTimeout(() => {
+        const pw = document.getElementById('settings-login-pw');
+        if(pw) pw.focus();
+    }, 100);
+}
+
+function loginFromSettings() {
+    const value = document.getElementById("settings-login-pw").value.trim();
+    if (value === "admin" || value === "ADMIN" || value === "963258") {
+        isAdmin = true;
+        showToast("ADMIN LOGIN SUCCESS");
+        document.getElementById("admin-status-text").innerText = "Logged In (ADMIN ✓)";
+        document.getElementById("admin-status-text").style.color = "#0ff";
+        document.getElementById("settings-login-pw").value = "";
+        
+        const loginBtn = document.querySelector("#start-screen button[onclick*='Login']");
+        if (loginBtn) {
+            loginBtn.innerText = "ADMIN ✓";
+            loginBtn.disabled = true;
+        }
+        return;
+    }
+    alert("ACCESS DENIED");
+}
+
+function clearAreaAround(x, z) {
+    let c = Math.floor((x - UNIT/2 + (COLS*UNIT)/2) / UNIT);
+    let r = Math.floor((z - UNIT/2 + (ROWS*UNIT)/2) / UNIT);
+    for (let dr = -2; dr <= 2; dr++) {
+        for (let dc = -2; dc <= 2; dc++) {
+            let nr = r + dr;
+            let nc = c + dc;
+            if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+                mapData[nr][nc] = 0;
+            }
+        }
+    }
+}
+
+function applySpawnLogic() {
+    let spawnPos = null;
+    if (selectedTargetSpawn) {
+        spawnPos = selectedTargetSpawn;
+        selectedTargetSpawn = null; // consume
+    } else if (spawnHistory && spawnHistory.length > 0) {
+        spawnPos = { x: spawnHistory[0].x, y: spawnHistory[0].y, z: spawnHistory[0].z };
+    } else if (savedHSpawn) {
+        spawnPos = savedHSpawn;
+    }
+    
+    if (spawnPos) {
+        if (spawnPos.y < -10.0) {
+            underground = true;
+            buildUnderground(spawnPos);
             
-            applySpawnLogic(); // 스폰 로직 실행
-        };
-
-        // 저장된 H 스폰포인트 버튼
-        document.getElementById('btn-load-h-spawn').addEventListener('click', () => {
-            if(savedHSpawn) {
-                spawnAtTarget(savedHSpawn.x, savedHSpawn.y, savedHSpawn.z);
-            } else {
-                alert("저장된 스폰 포인트가 없습니다! (게임 중 H키를 눌러 저장하세요)");
-            }
-        });
-
-        // 스폰 위치를 결정하는 최종 로직 (기존 게임 시작 함수 내부나 직후에 호출되게 설정)
-        function applySpawnLogic() {
-            if(typeof player === 'undefined' || !player.position) return;
-
-            if (selectedTargetSpawn) {
-                // 유저가 설정창에서 원하는 시간을 선택하거나 H 스폰을 누른 경우 -> 그 자리로 정확히 이동
-                player.position.set(selectedTargetSpawn.x, selectedTargetSpawn.y, selectedTargetSpawn.z);
-                selectedTargetSpawn = null; // 1회용으로 쓰고 초기화
-            } else {
-                // 그냥 평범하게 게임을 시작한 경우 -> 나갔던 곳이 아니라 무조건 '새로운' 무작위 위치
-                // (네 맵 크기에 맞게 100 이라는 숫자를 조절해 줘)
-                const randomX = (Math.random() - 0.5) * 100;
-                const randomZ = (Math.random() - 0.5) * 100;
-                player.position.set(randomX, 1.5, randomZ); // y축(높이)은 1.5 등 기존 셋팅 유지
-            }
+            if(iWalls) iWalls.visible = false;
+            lamps.forEach(l => { if(l.visible!==undefined) l.visible = false; });
+            if(floorM) floorM.visible = false;
+            if(floorGroup) floorGroup.visible = false;
+            if(ceilM) ceilM.visible = false;
+            if(keyMesh) keyMesh.visible = false;
+            doors.forEach(d => d.group.visible = false);
+            if(surfaceHoleGroup) surfaceHoleGroup.visible = false;
+            pitMeshes.forEach(m => { if(m && m.visible!==undefined) m.visible = false; });
+            if(pitVoid) pitVoid.visible = false;
+            
+            scene.background.setHex(0x111);
+            scene.fog.color.setHex(0x111);
+            scene.fog.density = isFlying ? 0 : 0.08;
+            ambient.intensity = 0.2;
+            flash.intensity = isFlashOn ? 3.0 : 0;
+            
+            player.position.set(spawnPos.x, spawnPos.y, spawnPos.z);
+            velY = 0;
+            grounded = true;
+        } else {
+            underground = false;
+            clearAreaAround(spawnPos.x, spawnPos.z);
+            player.position.set(spawnPos.x, spawnPos.y !== undefined ? spawnPos.y : 0.1, spawnPos.z);
         }
+    } else {
+        underground = false;
+        player.position.set(centerSpawnPoint.x, 0.1, centerSpawnPoint.z);
+    }
+}
 </script>
 </body>
 </html>
