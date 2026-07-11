@@ -45,7 +45,6 @@
         #joystick-zone { position:absolute; bottom:35px; left:35px; width:120px; height:120px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.2); border-radius:50%; z-index:10; touch-action:none; display:none; }
         #joystick-stick { position:absolute; top:35px; left:35px; width:50px; height:50px; background:rgba(255,255,255,.4); border-radius:50%; }
 
-        /* 수정됨: 초기 상태를 display:none으로 변경하여 메인 화면을 건너뜀 */
         #start-screen { position:absolute; top:0; left:0; width:100%; height:100%; z-index:200; display:none; flex-direction:column; justify-content:center; align-items:center; text-align: center; color:#fff; background: radial-gradient(circle, rgba(15,22,20,0.85) 0%, rgba(3,5,5,0.98) 100%); pointer-events:auto; }
 
         .rec-indicator { font-size: 16px; font-weight: 900; color: #ff3c3c; letter-spacing: 4px; margin-bottom: 30px; text-shadow: 0 0 8px rgba(255, 60, 60, 0.6); }
@@ -131,7 +130,10 @@
     <div class="badge-obunga">No Escape, Only Transfers</div>
     <div class="main-btn-group">
         <button class="play-btn glitch" data-text="PLAY" onclick="launchGame()">PLAY</button>
-        <button class="system-btn" onclick="openSettingsModal()">SYSTEM SETTINGS</button>
+        <div style="display:flex; gap:15px;">
+            <button class="system-btn" onclick="openSettingsModal()">SYSTEM SETTINGS</button>
+            <button class="system-btn" onclick="loadSave()">LOAD SAVE</button>
+        </div>
     </div>
 </div>
 
@@ -205,7 +207,6 @@ window.addEventListener('touchstart', () => {
 
 let platform = /Mobi|Android/i.test(navigator.userAgent) ? 'mobile' : 'pc';
 
-// [최적화] 불필요한 거대 2D 배열 연산 삭제
 let WH = 7.0; 
 let lamps = [], sceneGroup = null;
 
@@ -214,8 +215,10 @@ let isFlashOn = true, sensitivity = 1.0, volBgm = 0.4, volSfx = 0.7;
 let baseFov = 65, targetFov = 65;
 let recTime = 0;
 let lastRecSec = -1;
-
 let currentSubwayLevel = 0;
+let isFirstLaunch = true;
+
+const urlParams = new URLSearchParams(window.location.search);
 
 const domCctvTime = document.getElementById('cctv-time');
 const domHeartbeat = document.getElementById('heartbeat-ui');
@@ -235,7 +238,6 @@ function updatePlatformUI(selectedPf) {
     platform = selectedPf;
     document.getElementById('set-plat-pc').classList.toggle('active', platform === 'pc');
     document.getElementById('set-plat-mo').classList.toggle('active', platform === 'mobile');
-    
     const jZone = document.getElementById('joystick-zone');
     const mobControls = document.getElementById('mobile-controls-right');
     const crosshair = document.getElementById('crosshair');
@@ -249,17 +251,44 @@ updatePlatformUI(platform);
 
 let isAdmin = false, isFlying = false, lastJumpTime = 0;
 let velY = 0, grounded = true;
-const GRAVITY = -0.016, JUMP = 0.18;
+const GRAVITY = -0.016, JUMP = 0.22;
 const SPD_BASE = 0.14, SPD_SPRINT = 0.25, SPD_TIRED = 0.07;
 let stamina = 200, exhausted = false, moving = false, sprinting = false;
 let lastStamina = 200;
-
-// [버그수정] 스폰 포인트를 승강장 한가운데(안전 지대)로 통일
 let centerSpawnPoint = {x: 10, z: 0};
 let entitySpawnPoint = {x: 10, z: -30};
 
 let stairsMesh = null;
 let stairsPos = null;
+
+// Save / Load 로직 추가
+setInterval(() => {
+    if(gameState === 'PLAYING') {
+        localStorage.setItem('backrooms_save', JSON.stringify({ page: 2, time: recTime, level: currentSubwayLevel }));
+    }
+}, 5000);
+
+function loadSave() {
+    const saveStr = localStorage.getItem('backrooms_save');
+    if(saveStr) {
+        try {
+            const save = JSON.parse(saveStr);
+            if(save.page === 1) {
+                // page1 파일명(index.html 등)에 맞게 이동
+                window.location.href = ' https://naki28616-crypto.github.io/Backrooms/'; 
+                return;
+            } else {
+                recTime = save.time || 0;
+                currentSubwayLevel = save.level || 0;
+                isFirstLaunch = false; // 파라미터 무시하고 직접 로드
+                launchGame(true);
+                showToast("SAVE LOADED");
+            }
+        } catch(e) { alert("Save file corrupted."); }
+    } else {
+        alert("NO SAVE DATA FOUND.");
+    }
+}
 
 function getLevelColors(lvl) {
     const colors = [
@@ -279,15 +308,13 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.0) * 0.85);
 renderer.shadowMap.enabled = false; 
 document.body.appendChild(renderer.domElement);
-
-const ambient = new THREE.AmbientLight(0xe8e5d5, 0.4); // 분위기를 위해 주변광 낮춤
+const ambient = new THREE.AmbientLight(0xe8e5d5, 0.4); 
 scene.add(ambient);
-
 function updateEnvironmentColors(lvl) {
     const cols = getLevelColors(lvl);
     const bgCol = new THREE.Color(cols.c).multiplyScalar(0.2); 
     scene.background = bgCol;
-    scene.fog = new THREE.FogExp2(bgCol, 0.025); // 안개 농도 약간 올려 현실감 부여
+    scene.fog = new THREE.FogExp2(bgCol, 0.025); 
     
     const ambientCols = [0xddddd5, 0xffebcc, 0xd4eaff, 0xf0d9ff, 0xffd1d1];
     ambient.color.setHex(ambientCols[lvl % ambientCols.length]);
@@ -308,27 +335,24 @@ const lensMesh = new THREE.Mesh(new THREE.CircleGeometry(.04, 8), new THREE.Mesh
 lensMesh.position.set(0,0,-.11);
 lensMesh.rotation.y = Math.PI; flashMesh.add(lensMesh);
 flashMesh.position.set(.2, -.15, -.3); fpsRig.add(flashMesh);
-
 let player = new THREE.Group(); scene.add(player);
 
-// [퀄리티 업그레이드] 점자 블록과 타일 등 텍스처를 리얼하게 변경
 function createProceduralTexture(type, lvl) {
     const cols = getLevelColors(lvl);
     const c = document.createElement('canvas'); c.width = c.height = 512; const ctx = c.getContext('2d');
-    
     if (type === 'wall') {
         ctx.fillStyle = '#1e2124'; ctx.fillRect(0,0,512,512);
-        ctx.strokeStyle = '#33373b'; ctx.lineWidth = 4;
+        ctx.strokeStyle = '#33373b';
+        ctx.lineWidth = 4;
         for(let y=0; y<=512; y+=64) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(512, y); ctx.stroke(); }
         for(let x=0; x<=512; x+=128) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 512); ctx.stroke(); }
     } else if (type === 'floor') {
-        // 회색 콘크리트/타일 베이스
-        ctx.fillStyle = '#8a8d91'; ctx.fillRect(0,0,512,512);
+        ctx.fillStyle = '#8a8d91';
+        ctx.fillRect(0,0,512,512);
         ctx.strokeStyle = '#6a6c70'; ctx.lineWidth = 3;
         for(let y=0; y<=512; y+=32) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(512, y); ctx.stroke(); }
         for(let x=0; x<=512; x+=32) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 512); ctx.stroke(); }
         
-        // 리얼한 노란색 점자 블록 (양끝)
         ctx.fillStyle = '#ffcc00';
         ctx.fillRect(30, 0, 45, 512);
         ctx.fillRect(512 - 75, 0, 45, 512);
@@ -338,14 +362,15 @@ function createProceduralTexture(type, lvl) {
             ctx.fillRect(512 - 75, y, 45, 3);
         }
     } else if (type === 'track') {
-        // 어두운 선로 바닥 자갈/콘크리트 느낌
-        ctx.fillStyle = '#222224'; ctx.fillRect(0,0,512,512);
+        ctx.fillStyle = '#222224';
+        ctx.fillRect(0,0,512,512);
         ctx.fillStyle = '#111112';
         for(let i=0; i<2000; i++) {
             ctx.fillRect(Math.random()*512, Math.random()*512, 3, 3);
         }
     } else if (type === 'ceil') {
-        ctx.fillStyle = '#1a1c1e'; ctx.fillRect(0,0,512,512);
+        ctx.fillStyle = '#1a1c1e';
+        ctx.fillRect(0,0,512,512);
         ctx.fillStyle = '#2d3135';
         for(let i=0; i<512; i+=64) { ctx.fillRect(i, 0, 10, 512); }
     }
@@ -353,7 +378,7 @@ function createProceduralTexture(type, lvl) {
     const tex = new THREE.CanvasTexture(c);
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping; 
     if(type === 'floor') {
-        tex.repeat.set(1, 40); // 승강장 폭에 맞게 매핑 비율 최적화
+        tex.repeat.set(1, 40);
     } else {
         tex.repeat.set(30, 30);
     }
@@ -369,9 +394,8 @@ const floorMat = new THREE.MeshStandardMaterial({map:floorTex, roughness:0.9});
 const trackMat = new THREE.MeshStandardMaterial({map:trackTex, roughness:1.0});
 const ceilMat = new THREE.MeshStandardMaterial({map:ceilTex, roughness:1.0});
 
-// [성능 향상] 지오메트리를 전역에서 한 번만 선언하여 렉 제거 (메모리 재사용)
 const trackFloorGeo = new THREE.PlaneGeometry(800, 800);
-const platformGeo = new THREE.BoxGeometry(11.0, 1.2, 800); // 승강장 두께
+const platformGeo = new THREE.BoxGeometry(11.0, 1.2, 800); 
 const ceilingGeo = new THREE.PlaneGeometry(800, 800);
 const pillarGeo = new THREE.BoxGeometry(0.8, WH, 0.8);
 const lightFrameGeo = new THREE.BoxGeometry(0.2, 0.1, 4);
@@ -380,15 +404,14 @@ const psdBaseGeo = new THREE.BoxGeometry(0.2, 1.8, 4.5);
 const psdStripeGeo = new THREE.BoxGeometry(0.22, 0.15, 4.5);
 const psdGlassGeo = new THREE.BoxGeometry(0.05, 0.8, 3.5);
 
-// 고퀄리티 전철 디자인을 위한 재질과 형태
 const trainMetalMat = new THREE.MeshStandardMaterial({color: 0x909599, metalness: 0.9, roughness: 0.3});
 const trainStripeGreen = new THREE.MeshStandardMaterial({color: 0x22aa44, roughness: 0.3});
-const trainStripeBlue = new THREE.MeshStandardMaterial({color: 0xdddddd, roughness: 0.3}); // 흰색 보조선
-const darkGlassMat = new THREE.MeshStandardMaterial({color: 0x111111, roughness: 0.1, metalness: 0.9, emissive: 0x223322, emissiveIntensity: 0.5}); // 불켜진 창문
+const trainStripeBlue = new THREE.MeshStandardMaterial({color: 0xdddddd, roughness: 0.3});
+const darkGlassMat = new THREE.MeshStandardMaterial({color: 0x111111, roughness: 0.1, metalness: 0.9, emissive: 0x223322, emissiveIntensity: 0.5});
 const psdGlassMat = new THREE.MeshStandardMaterial({color: 0x88ffcc, transparent: true, opacity: 0.2, roughness: 0.1});
 const psdFrameMat = new THREE.MeshStandardMaterial({color: 0xe0e0e0, roughness: 0.5});
 const pillarMat = new THREE.MeshStandardMaterial({color: 0xeeeeee, roughness: 0.6});
-const tubeLightMat = new THREE.MeshBasicMaterial({color: 0xffffff}); // 다이나믹 라이트 대신 자체 발광 메쉬 사용 (렉 제거)
+const tubeLightMat = new THREE.MeshBasicMaterial({color: 0xffffff}); 
 const trainFrontLightMat = new THREE.MeshBasicMaterial({color: 0xfff0aa});
 const trainTailLightMat = new THREE.MeshBasicMaterial({color: 0xff1111});
 
@@ -408,13 +431,11 @@ function genSubwayMap() {
     clearCurrentLevel();
     sceneGroup = new THREE.Group();
 
-    // 1. 전체 바닥 (선로 위치: y = -1.5 로 단차 구성)
     const trackMesh = new THREE.Mesh(trackFloorGeo, trackMat);
     trackMesh.rotation.x = -Math.PI / 2;
     trackMesh.position.y = -1.5;
     sceneGroup.add(trackMesh);
 
-    // 2. 전체 천장
     const ceilM = new THREE.Mesh(ceilingGeo, ceilMat);
     ceilM.rotation.x = Math.PI / 2;
     ceilM.position.y = WH;
@@ -422,16 +443,13 @@ function genSubwayMap() {
 
     const platformPeriod = 36; 
     const mSize = 800;
-
-    // 3. 승강장 및 구조물 반복 생성
+    
     for(let x = -mSize/2; x < mSize/2; x += platformPeriod) {
         
-        // [사진 반영] 승강장 바닥 배치 (두께 1.2, 윗면이 y=0 이 되도록 y=-0.6에 중심 배치)
         const platMesh = new THREE.Mesh(platformGeo, floorMat);
         platMesh.position.set(x + 10, -0.6, 0); 
         sceneGroup.add(platMesh);
 
-        // 기둥 & 형광등 생성
         for(let z = -mSize/2 + 10; z < mSize/2 - 10; z += 12) {
             const pillar = new THREE.Mesh(pillarGeo, pillarMat);
             pillar.position.set(x + 10, WH/2, z);
@@ -444,12 +462,9 @@ function genSubwayMap() {
             lightGroup.add(lightFrame, lightTube);
             lightGroup.position.set(x + 10, WH - 0.4, z);
             sceneGroup.add(lightGroup);
-            lamps.push(lightTube); // 깜빡임 효과를 위해 저장
-            
-            // 렉을 유발하던 다이나믹 PointLight는 과감히 삭제하고 튜브의 밝기만 조절.
+            lamps.push(lightTube);
         }
 
-        // 스크린도어 생성
         for(let z = -mSize/2 + 5; z < mSize/2 - 5; z += 9) {
             const psdLeft = new THREE.Group();
             const base1 = new THREE.Mesh(psdBaseGeo, psdFrameMat);
@@ -458,9 +473,9 @@ function genSubwayMap() {
             const glass1 = new THREE.Mesh(psdGlassGeo, psdGlassMat);
             glass1.position.set(0, 0.3, 0);
             psdLeft.add(base1, stripeL, glass1);
-            psdLeft.position.set(x + 4.6, 0.9, z); // 승강장 끝 라인에 딱 맞춤
+            psdLeft.position.set(x + 4.6, 0.9, z);
             sceneGroup.add(psdLeft);
-
+            
             const psdRight = new THREE.Group();
             const base2 = new THREE.Mesh(psdBaseGeo, psdFrameMat);
             const stripeR = new THREE.Mesh(psdStripeGeo, trainStripeBlue);
@@ -472,7 +487,6 @@ function genSubwayMap() {
             sceneGroup.add(psdRight);
         }
 
-        // [퀄리티 업] 리얼한 일본 야간 전철 배치 (선로 높이인 y=-1.5 베이스)
         for(let z = -mSize/2 + 15; z < mSize/2 - 15; z += 30) {
             const trainL = new THREE.Group();
             const bodyL = new THREE.Mesh(tBodyGeo, trainMetalMat);
@@ -481,14 +495,11 @@ function genSubwayMap() {
             const stripeBL = new THREE.Mesh(tStripeBGeo, trainStripeBlue);
             stripeBL.position.y = -0.7;
             trainL.add(bodyL, stripeML, stripeBL);
-            
-            // 창문 불빛
             for(let dz = -10; dz <= 10; dz += 6) {
                 const win = new THREE.Mesh(tWinGeo, darkGlassMat);
                 win.position.set(0, 0.8, dz);
                 trainL.add(win);
             }
-            // 선로(-1.5) 기준으로 열차 높이 세팅하여 승강장과 조화
             trainL.position.set(x + 1.5, -1.5 + (WH - 0.5)/2, z);
             sceneGroup.add(trainL);
 
@@ -499,8 +510,7 @@ function genSubwayMap() {
             const stripeBR = new THREE.Mesh(tStripeBGeo, trainStripeBlue);
             stripeBR.position.y = -0.7;
             trainR.add(bodyR, stripeMR, stripeBR);
-
-            // 전조등 (헤드라이트) 추가
+            
             if(Math.random() > 0.5) {
                 const hLight = new THREE.Mesh(tHeadLightGeo, trainFrontLightMat);
                 hLight.position.set(0, 1.2, 13.9);
@@ -530,17 +540,14 @@ function spawnSubwayStairs() {
 
     const stMat = new THREE.MeshStandardMaterial({color:0xd0d3d4, roughness:0.8});
     const railsMat = new THREE.MeshStandardMaterial({color:0xb2b5b8, metalness:0.9, roughness:0.2});
-
     const stepsCount = 14;
     const stepDepth = 0.8;
     const stepWidth = 4.5;
     const stepHeight = WH / stepsCount;
-
     for(let i = 0; i < stepsCount; i++) {
         const step = new THREE.Mesh(new THREE.BoxGeometry(stepWidth, stepHeight, stepDepth), stMat);
         step.position.set(0, (i * stepHeight) + stepHeight/2, -i * stepDepth);
         stairsMesh.add(step);
-
         if (i % 4 === 0) {
             const pillarL = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.2), railsMat);
             pillarL.position.set(-stepWidth/2 + 0.1, (i * stepHeight) + 1.2/2, -i * stepDepth);
@@ -558,8 +565,6 @@ function spawnSubwayStairs() {
     const tunnel = new THREE.Mesh(new THREE.BoxGeometry(stepWidth, WH, 0.2), tunnelMat);
     tunnel.position.set(0, WH/2, -stepsCount * stepDepth - 4.0); 
     stairsMesh.add(tunnel);
-
-    // 계단 위치를 스폰 포인트 라인에 맞춤
     const sp = { x: 10, z: -15 };
     stairsMesh.position.set(sp.x, 0, sp.z);
     
@@ -572,7 +577,6 @@ function goNextSubwayLevel() {
     overlay.style.transition = 'opacity 0.4s, background-color 0.4s';
     overlay.style.backgroundColor = 'rgba(0,0,0,1)';
     overlay.style.opacity = '1';
-    
     setTimeout(() => {
         currentSubwayLevel++;
         showToast(`TRANSFERRED TO METRO LINE ${currentSubwayLevel+1}`);
@@ -603,7 +607,6 @@ function goNextSubwayLevel() {
 
 function checkStairsWalkPhysics() {
     if(!stairsPos || isNaN(stairsPos.x) || isNaN(stairsPos.z)) return false;
-
     const dx = player.position.x - stairsPos.x;
     const dz = player.position.z - stairsPos.z;
 
@@ -642,27 +645,10 @@ function mkEntity(){
     return {mesh: e, sprite: sprite, state: 'patrol', patrolTarget: null, baseSpeed: 0.11, speed: 0.11, stuckT: 0, lastPos: new THREE.Vector3()};
 }
 
-// [핵심 해결] 무거운 2D 배열 검사를 폐기하고 수학적 경계 박스로 벽 끼임(제자리걸음) 버그 완벽 수정
 function gridCollide(ox, oz, nx, nz, rad) {
     if(isFlying) return {x: nx, z: nz};
     if(isNaN(nx) || isNaN(nz)) return { x: ox, z: oz };
-    if(player.position.y < -.05) return { x: nx, z: nz }; // 선로로 떨어지면 자유이동 허용
-    
-    let rx = nx, rz = nz;
-    const period = 36;
-    const centerOffset = 10;
-    const halfWidth = 4.8; // 스크린도어가 막아주는 폭의 절반 (안전하게 설정)
-    
-    let relativeX = (nx - centerOffset) % period;
-    if(relativeX < -period/2) relativeX += period;
-    if(relativeX > period/2) relativeX -= period;
-    
-    // 선로(양옆 낭떠러지)로 넘어가려 하면 X축 이동 차단
-    if(Math.abs(relativeX) > halfWidth - rad) {
-        rx = ox; 
-    }
-    
-    return { x: rx, z: rz };
+    return { x: nx, z: nz };
 }
 
 function entityAI(e, pp){
@@ -745,7 +731,8 @@ function toggleNoClip() {
         velY = 0;
         scene.fog.density = 0; camera.far = 1000; camera.updateProjectionMatrix();
     } else {
-        scene.fog.density = 0.025; camera.far = 180; camera.updateProjectionMatrix();
+        scene.fog.density = 0.025;
+        camera.far = 180; camera.updateProjectionMatrix();
     }
 }
 
@@ -763,7 +750,6 @@ window.addEventListener('touchstart', e => {
         }
     }
 }, {passive:false});
-
 window.addEventListener('touchmove', e => {
     if(platform !== 'mobile' || gameState !== 'PLAYING') return;
     e.preventDefault(); 
@@ -785,11 +771,11 @@ window.addEventListener('touchmove', e => {
             
             prevX = t.clientX; 
             prevY = t.clientY; 
+            
             if(!isFlying) camY = Math.max(-Math.PI/2.5, Math.min(Math.PI/2.5, camY)); 
         }
     }
 }, {passive:false});
-
 window.addEventListener('touchend', e => {
     for(let i=0; i<e.changedTouches.length; i++){
         const t = e.changedTouches[i];
@@ -797,7 +783,6 @@ window.addEventListener('touchend', e => {
         if(t.identifier === rTouchId) rTouchId = null;
     }
 });
-
 function calcJoy(cx, cy){
     let dx = cx - jStart.x, dy = cy - jStart.y;
     const d = Math.sqrt(dx*dx + dy*dy), maxR = 40;
@@ -806,7 +791,6 @@ function calcJoy(cx, cy){
     jInput.x = dx/maxR; 
     jInput.y = dy/maxR; 
     jRatio = d/maxR;
-    
     if (isNaN(jInput.x)) jInput.x = 0;
     if (isNaN(jInput.y)) jInput.y = 0;
 }
@@ -824,7 +808,6 @@ window.addEventListener('mousemove', e => {
         if(!isFlying) camY = Math.max(-Math.PI/2.5, Math.min(Math.PI/2.5, camY));
     }
 });
-
 function handleFlash(e){ e.preventDefault(); e.stopPropagation(); if(gameState === 'PLAYING') toggleFlash(); }
 function handleJumpDown(e){
     e.preventDefault(); e.stopPropagation();
@@ -843,7 +826,7 @@ function handleJumpUp(e){ e.preventDefault(); e.stopPropagation(); jumpBtnPresse
 
 function toggleFlash(){ 
     isFlashOn = !isFlashOn;
-    document.getElementById('btn-mobile-flash')?.classList.toggle('active', isFlashOn); 
+    document.getElementById('btn-mobile-flash')?.classList.toggle('active', isFlashOn);
     flash.intensity = isFlashOn ? 2.0 : 0; 
     lensMesh.material.color.setHex(isFlashOn ? 0xffffee : 0x222222);
 }
@@ -869,7 +852,6 @@ window.addEventListener('keydown', e => {
     if(k === 'f' && gameState === 'PLAYING') toggleFlash();
 });
 window.addEventListener('keyup', e => { const k = e.key.toLowerCase(); if(k in keys) keys[k] = false; if(e.key === ' ') keys.space = false; });
-
 function triggerPause(s){
     if(gameState === 'GAMEOVER' || gameState === 'CLEAR') return;
     gameState = s ? 'PAUSED' : 'PLAYING';
@@ -905,9 +887,11 @@ function goMainMenu(){
     clearCurrentLevel();
     
     wallTex.dispose(); floorTex.dispose(); ceilTex.dispose(); trackTex.dispose();
-    wallTex = createProceduralTexture('wall', 0); floorTex = createProceduralTexture('floor', 0); ceilTex = createProceduralTexture('ceil', 0); trackTex = createProceduralTexture('track', 0);
+    wallTex = createProceduralTexture('wall', 0); floorTex = createProceduralTexture('floor', 0); ceilTex = createProceduralTexture('ceil', 0);
+    trackTex = createProceduralTexture('track', 0);
     wallMat.map = wallTex; floorMat.map = floorTex; ceilMat.map = ceilTex; trackMat.map = trackTex;
-    wallMat.needsUpdate = true; floorMat.needsUpdate = true; ceilMat.needsUpdate = true; trackMat.needsUpdate = true;
+    wallMat.needsUpdate = true;
+    floorMat.needsUpdate = true; ceilMat.needsUpdate = true; trackMat.needsUpdate = true;
     
     if(document.pointerLockElement === document.body) document.exitPointerLock(); targetFov = baseFov; camera.fov = baseFov;
     isFlying = false; camera.far = 180; camera.updateProjectionMatrix();
@@ -919,7 +903,7 @@ function goMainMenu(){
 function openSettingsModal() { document.getElementById('settings-modal').style.display = 'flex'; }
 function closeSettingsModal() { document.getElementById('settings-modal').style.display = 'none'; }
 
-function launchGame(){
+function launchGame(isLoad = false){
     if (platform === 'mobile') {
         let elem = document.documentElement;
         let requestFullscreen = elem.requestFullscreen || elem.webkitRequestFullscreen || elem.mozRequestFullScreen || elem.msRequestFullscreen;
@@ -939,35 +923,56 @@ function launchGame(){
     domQuest.style.display = 'block'; 
     document.getElementById('stamina-container').style.display = 'block';
 
-    currentSubwayLevel = 0; updateEnvironmentColors(0);
-    stamina = 200; lastStamina = 200; exhausted = false; velY = 0;
+    if(isLoad) {
+        // recTime 및 currentSubwayLevel 유지
+    } else if (isFirstLaunch && urlParams.has('time')) {
+        recTime = parseFloat(urlParams.get('time')) || 0;
+        currentSubwayLevel = parseInt(urlParams.get('level')) || 0;
+    } else {
+        recTime = 0;
+        currentSubwayLevel = 0;
+    }
+    isFirstLaunch = false;
+
+    updateEnvironmentColors(currentSubwayLevel);
+    stamina = 200; lastStamina = 200; exhausted = false;
+    velY = 0;
     grounded = true; lightState = 'normal'; targetFov = baseFov; camera.fov = baseFov;
-    isFlying = false; camera.far = 180; camera.updateProjectionMatrix(); scene.fog.density = 0.025;
+    isFlying = false;
+    camera.far = 180; camera.updateProjectionMatrix(); scene.fog.density = 0.025;
     
     wallTex.dispose(); floorTex.dispose(); ceilTex.dispose(); trackTex.dispose();
-    wallTex = createProceduralTexture('wall', 0); floorTex = createProceduralTexture('floor', 0); ceilTex = createProceduralTexture('ceil', 0); trackTex = createProceduralTexture('track', 0);
+    wallTex = createProceduralTexture('wall', currentSubwayLevel); floorTex = createProceduralTexture('floor', currentSubwayLevel);
+    ceilTex = createProceduralTexture('ceil', currentSubwayLevel); trackTex = createProceduralTexture('track', currentSubwayLevel);
     wallMat.map = wallTex; floorMat.map = floorTex; ceilMat.map = ceilTex; trackMat.map = trackTex;
     wallMat.needsUpdate = true; floorMat.needsUpdate = true; ceilMat.needsUpdate = true; trackMat.needsUpdate = true;
 
-    if(platform === 'mobile'){ document.getElementById('joystick-zone').style.display = 'block'; document.getElementById('mobile-controls-right').style.display = 'flex'; }
-    else{ document.getElementById('crosshair').style.display = 'block'; try{ document.body.requestPointerLock(); } catch(e){} }
+    if(platform === 'mobile'){ document.getElementById('joystick-zone').style.display = 'block';
+    document.getElementById('mobile-controls-right').style.display = 'flex'; }
+    else{ document.getElementById('crosshair').style.display = 'block'; try{ document.body.requestPointerLock();
+    } catch(e){} }
     
     genSubwayMap(); 
     spawnSubwayStairs();
     
     player.position.set(centerSpawnPoint.x, 0.1, centerSpawnPoint.z + 10);
-    sCamX = Math.PI; camX = Math.PI; sCamY = 0; camY = 0; 
+    sCamX = Math.PI;
+    camX = Math.PI; sCamY = 0; camY = 0; 
     
     entities.forEach(e => { e.mesh.position.set(entitySpawnPoint.x, 0, entitySpawnPoint.z); e.lastPos.copy(e.mesh.position); e.patrolTarget = entitySpawnPoint; e.state = 'patrol'; });
-    
-    gameState = 'PLAYING'; recTime = 0; lastRecSec = -1;
+    gameState = 'PLAYING'; 
+    lastRecSec = -1;
 }
 
 genSubwayMap(); spawnSubwayStairs(); entities.push(mkEntity()); 
 
-// [수정됨] 페이지 진입 즉시 게임 시작을 호출합니다.
+// 진입 시 URL 파라미터가 있으면 곧바로 게임 시작(Page1에서 넘어왔을 경우 대응), 없으면 시작화면 노출
 window.addEventListener('DOMContentLoaded', () => {
-    launchGame();
+    if (urlParams.has('time')) {
+        launchGame();
+    } else {
+        document.getElementById('start-screen').style.display = 'flex';
+    }
 });
 
 let menuCamAngle = 0;
@@ -1028,14 +1033,13 @@ function animate(){
 
     sCamX += (camX-sCamX)*.2; sCamY += (camY-sCamY)*.2;
     let bobX = 0, bobY = 0;
-
     if(isFlying) {
         moving = keys.w || keys.a || keys.s || keys.d || Math.abs(jInput.x)>.05 || Math.abs(jInput.y)>.05;
         sprinting = moving && (keys.shift || jRatio > 0.75);
-        const fDir = new THREE.Vector3(0, 0, -1); fDir.applyEuler(new THREE.Euler(sCamY, sCamX, 0, 'YXZ'));
+        const fDir = new THREE.Vector3(0, 0, -1);
+        fDir.applyEuler(new THREE.Euler(sCamY, sCamX, 0, 'YXZ'));
         const rDir = new THREE.Vector3(1, 0, 0);
         rDir.applyEuler(new THREE.Euler(0, sCamX, 0, 'YXZ'));
-        
         let fmX = 0, fmY = 0, fmZ = 0;
         if(platform === 'pc') {
             if(keys.w){ fmX += fDir.x; fmY += fDir.y; fmZ += fDir.z; }
@@ -1068,22 +1072,17 @@ function animate(){
         }
 
         if(sprinting){ stamina -= .25;
-            if(stamina <= 0){ stamina = 0; exhausted = true; } } else { stamina += moving ? 0.2 : 0.5;
-            if(stamina >= 200){ stamina = 200; exhausted = false; } }
+        if(stamina <= 0){ stamina = 0; exhausted = true; } } else { stamina += moving ? 0.2 : 0.5;
+        if(stamina >= 200){ stamina = 200; exhausted = false; } }
         
         const spd = exhausted ? SPD_TIRED : (sprinting ? SPD_SPRINT : SPD_BASE);
         const nx = player.position.x + mX*spd, nz = player.position.z + mZ*spd;
-        
         if(moving){
-            let onStairs = checkStairsWalkPhysics();
-            if(!onStairs) {
-                let safe = gridCollide(player.position.x, player.position.z, nx, nz, .55);
-                player.position.x = safe.x;
-                player.position.z = safe.z;
-                if(grounded){ const wf = sprinting ? 2.5 : 1.4; bobX = Math.sin(rt*wf)*.04; bobY = Math.cos(rt*wf*2)*.025; }
-            } else {
-                if(grounded){ const wf = sprinting ? 2.5 : 1.4; bobX = Math.sin(rt*wf)*.04; bobY = Math.cos(rt*wf*2)*.025; }
-            }
+            checkStairsWalkPhysics();
+            let safe = gridCollide(player.position.x, player.position.z, nx, nz, .55);
+            player.position.x = safe.x;
+            player.position.z = safe.z;
+            if(grounded){ const wf = sprinting ? 2.5 : 1.4; bobX = Math.sin(rt*wf)*.04; bobY = Math.cos(rt*wf*2)*.025; }
         }
     }
 
@@ -1098,10 +1097,8 @@ function animate(){
     let isStairs = checkStairsWalkPhysics();
     if(!isStairs && !isFlying){
         velY += GRAVITY; player.position.y += velY;
-        
-        // 지면 충돌 검사 (선로 -1.5, 승강장 0.05)
-        let floorLevel = 0.05; 
-        if(player.position.x < 4.5 || player.position.x > 15.5) floorLevel = -1.45; // 선로 구역에 빠졌을 때
+        let floorLevel = 0.05;
+        if(player.position.x < 4.5 || player.position.x > 15.5) floorLevel = -1.45;
 
         if(player.position.y <= floorLevel){ 
             player.position.y = floorLevel;
@@ -1119,7 +1116,6 @@ function animate(){
     const aw = moving && !isFlying ? Math.sin(rt*(sprinting?2.5:1.4))*.07 : 0; const ai = Math.sin(Date.now()*.001)*.01;
     flashMesh.position.z = -.3 - aw + ai; flashMesh.position.y = -.15 + Math.abs(aw)*.25;
     flash.position.set(.2, -.15, -.3); flashTgt.position.set(.2, -.15, -12);
-
     let closestD = 999;
     entities.forEach(e => {
         entityAI(e, player.position);
@@ -1128,7 +1124,8 @@ function animate(){
     if(closestD < 15 && !isFlying){ 
         const pf = (15-closestD)/15;
         domHeartbeat.style.transform = `translateX(-50%) scale(${1.0 + pf*0.5})`;
-    } else { domHeartbeat.style.transform = 'translateX(-50%) scale(0)'; }
+    } else { domHeartbeat.style.transform = 'translateX(-50%) scale(0)';
+    }
     
     if(closestD < 1.3 && !isFlying){ triggerGameOver("CAUGHT BY NEXTBOT."); return; }
 
